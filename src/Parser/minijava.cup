@@ -1,0 +1,196 @@
+/*
+ * CUP specification for the parser for a simple demo language
+ * Change this into the parser for your implementation of MiniJava.
+ */
+
+package Parser;
+
+import Throwables.*;
+import AST.*;
+import java.util.*;
+import java_cup.runtime.*;
+
+
+/* Terminals (tokens returned by the scanner) */
+
+/* reserved words: */
+terminal RETURN, CLASS, PUBLIC, STATIC, VOID, MAIN, STRING, INTEGER, BOOLEAN, IF, ELSE, WHILE, SYSOUT, LENGTH, TRUE, FALSE, THIS, NEW, EXTENDS;
+
+/* operators: */
+terminal PLUS, BECOMES, LESS, AND, MINUS, TIMES, POINT, NOT;
+
+/* delimiters: */
+terminal LPAREN, RPAREN, SEMICOLON, LBRACE, RBRACE, LBRACK, RBRACK, COMMA;
+
+/* tokens with values: */
+terminal String IDENTIFIER;
+terminal Integer INT;
+
+/* Nonterminals */
+
+nonterminal Program Goal;
+nonterminal Statement Statement;
+nonterminal StatementList StatementList;
+nonterminal Assign AssignStatement;
+nonterminal Return ReturnStatement;
+nonterminal Exp Expression;
+nonterminal ExpList ExpressionList;
+nonterminal Identifier Identifier;
+nonterminal IdentifierType IdentifierType;
+nonterminal Type Type;
+nonterminal MethodDecl MethodDecl;
+nonterminal MethodDeclArgs MethodDeclArgs;
+nonterminal MethodDeclSimple MethodDeclSimple;
+nonterminal MethodDeclList MethodDeclList;
+nonterminal VarDecl VarDecl;
+nonterminal VarDeclList VarDeclList;
+nonterminal Formal FormalParameter;
+nonterminal FormalList FormalList;
+nonterminal FormalList FormalListRest;
+nonterminal MainClass MainClass;
+nonterminal ClassDeclExtends ClassDeclExtends;
+nonterminal ClassDeclSimple ClassDeclSimple;
+nonterminal ClassDecl ClassDecl;
+nonterminal ClassDeclList ClassDeclList;
+
+
+/* Precedence declarations */
+
+precedence left BECOMES, AND, LESS, PLUS, MINUS, TIMES, POINT;
+
+/* Productions */
+
+/*Program ::= Statement:s
+            {: List<Statement> p = new LinkedList<Statement>();
+               p.add(s);
+               RESULT = p; :}
+        | Program:p Statement:s
+            {: p.add(s); RESULT = p; :};*/
+            
+Goal ::= MainClass:main ClassDeclList:cldl
+			{: RESULT = new Program(main, cldl, 1); :};
+			
+MainClass ::= CLASS Identifier:id1 LBRACE PUBLIC STATIC VOID MAIN LPAREN STRING LBRACK RBRACK Identifier:id2 RPAREN LBRACE Statement:stmt RBRACE RBRACE
+				{: RESULT = new MainClass(id1, id2, stmt, 1); :};
+				
+ClassDeclList ::= ClassDecl:clad ClassDeclList:cldl
+					  		{: cldl.addElement(clad); RESULT = cldl; :}
+					  	| {: RESULT = new ClassDeclList(1); :};
+
+ClassDecl ::= ClassDeclExtends:classdeclext
+						{: RESULT = classdeclext; :}
+					| ClassDeclSimple:classdeclsimpl
+						{: RESULT = classdeclsimpl; :};
+						
+ClassDeclExtends ::= CLASS Identifier:id1 EXTENDS Identifier:id2 LBRACE VarDeclList:varl MethodDeclList:mthl RBRACE			 
+						{: RESULT = new ClassDeclExtends(id1, id2, varl, mthl, 1); :};
+
+ClassDeclSimple ::= CLASS Identifier:id1 LBRACE VarDeclList:varl MethodDeclList:mthl RBRACE			 
+						{: RESULT = new ClassDeclSimple(id1, varl, mthl, 1); :};	
+
+VarDeclList ::= VarDecl:vard VarDeclList:vadl
+							{: vadl.addElement(vard); RESULT = vadl; :}
+					| {: RESULT = new VarDeclList(1); :};
+					            
+VarDecl ::= Type:type Identifier:id SEMICOLON
+					{: RESULT = new VarDecl(type, id, 1); :};
+					
+MethodDeclList ::= MethodDecl:mthd MethodDeclList:mthl
+							{: mthl.addElement(mthd); RESULT = mthl; :}
+						| {: RESULT = new MethodDeclList(1); :};
+					
+MethodDecl ::= PUBLIC Type:type Identifier:id LPAREN FormalList:forl RPAREN LBRACE VarDeclList:varl StatementList:stml RETURN Expression:expr SEMICOLON RBRACE
+						{: RESULT = new MethodDecl(type, id, forl, varl, stml, expr, 1); :};
+						
+FormalList ::=  FormalParameter:ford FormalListRest:forl 
+						{: 	FormalList f = new FormalList(1);
+							f.addElement(ford);
+							for(int i=0; i<forl.size(); i++){
+								f.addElement(forl.elementAt(i));
+							}
+							RESULT = f; 
+						:}
+				| {: RESULT = new FormalList(1); :};
+						
+FormalListRest ::=  FormalListRest:forl COMMA FormalParameter:ford
+						{: forl.addElement(ford); RESULT = forl; :}
+						| {: RESULT = new FormalList(1); :};
+						
+FormalParameter ::= Type:t Identifier:id
+						{: RESULT = new Formal(t,id, 1); :};
+						
+Type ::=  INTEGER LBRACK RBRACK 
+			{: RESULT = new IntArrayType(1); :}
+		| BOOLEAN
+			{: RESULT = new BooleanType(1); :}
+		| INTEGER
+			{: RESULT = new IntegerType(1); :};
+		
+StatementList ::= Statement:stmt StatementList:stml
+						{: stml.addElement(stmt); RESULT = stml; :}
+				| {: RESULT = new StatementList(1); :};
+		
+Statement   ::= Identifier:id BECOMES Expression:expr SEMICOLON
+                    {: RESULT = new Assign(id, expr, 1); :}
+            | ReturnStatement:s
+                {: RESULT = s; :}
+            | Identifier:id LBRACK Expression:expr1 RBRACK BECOMES Expression:expr2 SEMICOLON
+            	{: RESULT = new ArrayAssign(id, expr1, expr2, 1); :}
+            | SYSOUT LPAREN Expression:expr RPAREN SEMICOLON
+            	{: RESULT = new Print(expr, 1); :}
+            | WHILE LPAREN Expression:expr RPAREN Statement:stmt
+            	{: RESULT = new While(expr, stmt, 1); :}
+            | IF LPAREN Expression:expr RPAREN Statement:stmt1 ELSE Statement:stmt2
+            	{: RESULT = new If(expr, stmt1, stmt2, 1); :}
+            | LBRACE StatementList:stml RBRACE
+            	{: RESULT = new Block(stml, 1); :};
+				
+Expression    ::= 
+        | Expression:arg1 PLUS Expression:arg2
+            {: RESULT = new Plus(arg1, arg2, 1); :}
+        | Expression:arg1 TIMES Expression:arg2
+            {: RESULT = new Times(arg1, arg2, 1); :}
+        | Expression:arg1 MINUS Expression:arg2
+            {: RESULT = new Minus(arg1, arg2, 1); :}
+        | Expression:arg1 LESS Expression:arg2
+        	{: RESULT = new LessThan(arg1, arg2, 1); :}
+       	| Expression:arg1 AND Expression:arg2
+        	{: RESULT = new And(arg1, arg2, 1); :}
+        | Expression:arg1 POINT LENGTH
+        	{: RESULT = new ArrayLength(arg1, 1); :}
+       	| INT:lit
+            {: RESULT = new IntegerLiteral(lit, 1); :}
+        | TRUE:tru
+            {: RESULT = new True(1); :}
+       	| FALSE:fal
+            {: RESULT = new False(1); :}
+        | THIS:th
+        	{: RESULT = new This(1); :}
+        | NEW INTEGER LBRACK Expression:expr RBRACK
+        	{: RESULT = new NewArray(expr, 1); :}
+        | NEW Identifier:id LPAREN RPAREN 
+        	{: RESULT = new NewObject(id, 1); :}
+        | NOT Expression:expr
+            {: RESULT = new Not(expr, 1); :}
+        | LPAREN Expression:expr RPAREN
+            {: RESULT = expr; :}
+		| Identifier:id
+			{: RESULT = new IdentifierExp(id.s,1); :};
+        /*| Expression:expr POINT Identifier:id LPAREN RPAREN
+				{: RESULT = new CallSimple(expr, id, 1); :};*/
+				
+Identifier  ::=  IDENTIFIER:id
+                	{: RESULT = new Identifier(id, 1); :};
+        	
+/*ExpressionList ::= Expression:expr
+						{:  ExpList exprl = new ExpList(1);
+							exprl.addElement(expr);
+							RESULT = exprl; :}
+					  | ExpressionList:exprl Expression:expr
+					  	{: exprl.addElement(expr); RESULT = exprl; :};*/
+				
+
+		
+		
+		
+		
