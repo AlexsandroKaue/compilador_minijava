@@ -21,6 +21,7 @@ public class TestParser {
 				System.out.print("\n");
             }*/
             Program program = (Program)root.value;
+            program.accept(new TypeCheckVisitor());
             program.accept(new PrettyPrintVisitor());
  			System.out.print("\n");
             System.out.print("\nParsing successfull"); 
