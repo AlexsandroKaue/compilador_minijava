@@ -1,8 +1,11 @@
 package AST.Visitor;
 
+import com.sun.org.apache.xpath.internal.Expression;
+
 import Semantics.Method;
 import Semantics.SymbolTable;
 import Semantics.Class;
+import Semantics.Variable;
 import AST.*;
 import AST.Visitor.Visitor;
 
@@ -148,9 +151,40 @@ public class TypeCheckVisitor implements Visitor{
 	}
 
 	public void visit(Assign n) {
-		if(this.lastMethod == null || !this.lastMethod.vars.containsKey(n.i.s))
-			if(!this.lastClass.globals.containsKey(n.i.s))
+		Variable variable;
+		Variable expression;
+		
+		if((variable = this.lastClass.globals.get(n.i.s)) == null)
+			if((variable = this.lastMethod.vars.get(n.i.s)) == null)
 				throw new IllegalArgumentException("Variable " + n.i.s + " is not declared");
+		
+		if( n.e instanceof IdentifierExp){
+			
+			if((expression = this.lastClass.globals.get( ((IdentifierExp)n.e).s )) == null)
+				if((expression = this.lastMethod.vars.get(((IdentifierExp)n.e).s)) == null)
+					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
+			
+			if(!variable.type.getClass().equals(expression.type.getClass()))
+				throw new IllegalArgumentException("Illegal type assign");
+		}
+		else if( variable.type instanceof IntegerType ) {
+			if( !(  n.e instanceof IntegerLiteral ||
+				n.e instanceof Plus ||
+				n.e instanceof Minus ||
+				n.e instanceof Times ||
+				n.e instanceof LessThan) )
+				throw new IllegalArgumentException("Illegal type assign");
+		}
+		else if( variable.type instanceof BooleanType ) {
+			if( !( n.e instanceof And) )
+				throw new IllegalArgumentException("Illegal type assign");			
+		}
+		else if( variable.type instanceof IdentifierType ) {
+			if( !( n.e instanceof NewObject) )
+				throw new IllegalArgumentException("Illegal type assign");
+			if( !( ((IdentifierType)variable.type).s.equals( ((NewObject)n.e).i.s )) )
+				throw new IllegalArgumentException("Illegal type assign");
+		}
 		n.i.accept(this);
 		n.e.accept(this);
 		
