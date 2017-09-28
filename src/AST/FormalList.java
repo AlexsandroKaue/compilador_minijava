@@ -3,7 +3,7 @@ package AST;
 import java.util.Vector;
 
 public class FormalList extends ASTNode {
-   private Vector list;
+   public Vector list;
 
    public FormalList(int ln) {
       super(ln);

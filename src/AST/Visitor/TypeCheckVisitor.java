@@ -1,5 +1,7 @@
 package AST.Visitor;
 
+import sun.security.util.Length;
+
 import com.sun.org.apache.xpath.internal.Expression;
 
 import Semantics.Method;
@@ -73,6 +75,11 @@ public class TypeCheckVisitor implements Visitor{
 	}
 
 	public void visit(VarDecl n) {
+		
+		if(n.t instanceof IdentifierType)
+			if( this.table.classes.get( ((IdentifierType)n.t ).s ) == null )
+				throw new IllegalArgumentException("Type " + ((IdentifierType)n.t ).s + " not declared");
+		
 		if(this.lastMethod == null){
 			if(!this.lastClass.addVar(n.i.s, n.t)){
 				throw new IllegalArgumentException("Variable " + n.i.s + " already exists");
@@ -87,6 +94,10 @@ public class TypeCheckVisitor implements Visitor{
 		if(!this.lastClass.addMethod(n.i.s, n.t))
 			throw new IllegalArgumentException("Method " + n.i.s + " already exists");
 		this.lastMethod = this.lastClass.methods.get(n.i.s);
+		for(int i = 0; i < n.fl.size(); i++) {
+			this.lastMethod.params.add(new Variable(n.fl.elementAt(i).i.s, n.fl.elementAt(i).t));
+		}
+		
 		n.t.accept(this);
 		n.i.accept(this);
 		for (int i = 0; i < n.fl.size(); i++) {
@@ -136,12 +147,40 @@ public class TypeCheckVisitor implements Visitor{
 	}
 
 	public void visit(If n) {
+		Variable identifier;
+		
+		if( n.e instanceof IdentifierExp){
+			if((identifier = this.lastClass.globals.get( ((IdentifierExp)n.e).s )) == null)
+				if((identifier = this.lastMethod.vars.get(((IdentifierExp)n.e).s)) == null)
+					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
+			
+			if( !(identifier.type instanceof BooleanType) )
+				throw new IllegalArgumentException("Illegal type in if expression");
+		}else if( !(n.e instanceof True ||
+					n.e instanceof False ||
+					n.e instanceof LessThan) ) 
+				throw new IllegalArgumentException("Illegal type in if expression");
+		
 		n.e.accept(this);
 		n.s1.accept(this);
 		n.s2.accept(this);
 	}
 
 	public void visit(While n) {
+		Variable identifier;
+		
+		if( n.e instanceof IdentifierExp){
+			if((identifier = this.lastClass.globals.get( ((IdentifierExp)n.e).s )) == null)
+				if((identifier = this.lastMethod.vars.get(((IdentifierExp)n.e).s)) == null)
+					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
+			
+			if( !(identifier.type instanceof BooleanType) )
+				throw new IllegalArgumentException("Illegal type in while expression");
+		}else if( !(n.e instanceof True ||
+					n.e instanceof False ||
+					n.e instanceof LessThan) ) 
+				throw new IllegalArgumentException("Illegal type in while expression");
+		
 		n.e.accept(this);
 		n.s.accept(this);
 	}
@@ -151,11 +190,11 @@ public class TypeCheckVisitor implements Visitor{
 	}
 
 	public void visit(Assign n) {
-		Variable variable;
+		Variable identifier;
 		Variable expression;
 		
-		if((variable = this.lastClass.globals.get(n.i.s)) == null)
-			if((variable = this.lastMethod.vars.get(n.i.s)) == null)
+		if((identifier = this.lastClass.globals.get(n.i.s)) == null)
+			if((identifier = this.lastMethod.vars.get(n.i.s)) == null)
 				throw new IllegalArgumentException("Variable " + n.i.s + " is not declared");
 		
 		if( n.e instanceof IdentifierExp){
@@ -164,33 +203,76 @@ public class TypeCheckVisitor implements Visitor{
 				if((expression = this.lastMethod.vars.get(((IdentifierExp)n.e).s)) == null)
 					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
 			
-			if(!variable.type.getClass().equals(expression.type.getClass()))
+			if(!identifier.type.getClass().equals(expression.type.getClass()))
 				throw new IllegalArgumentException("Illegal type assign");
 		}
-		else if( variable.type instanceof IntegerType ) {
+		else if( identifier.type instanceof IntegerType ) {
 			if( !(  n.e instanceof IntegerLiteral ||
 				n.e instanceof Plus ||
 				n.e instanceof Minus ||
 				n.e instanceof Times ||
-				n.e instanceof LessThan) )
+				n.e instanceof ArrayLength) )
 				throw new IllegalArgumentException("Illegal type assign");
 		}
-		else if( variable.type instanceof BooleanType ) {
-			if( !( n.e instanceof And) )
+		else if( identifier.type instanceof BooleanType ) {
+			if( !( n.e instanceof And ||
+					n.e instanceof LessThan) )
 				throw new IllegalArgumentException("Illegal type assign");			
 		}
-		else if( variable.type instanceof IdentifierType ) {
+		else if( identifier.type instanceof IdentifierType ) {
 			if( !( n.e instanceof NewObject) )
 				throw new IllegalArgumentException("Illegal type assign");
-			if( !( ((IdentifierType)variable.type).s.equals( ((NewObject)n.e).i.s )) )
+			if( !( ((IdentifierType)identifier.type).s.equals( ((NewObject)n.e).i.s )) )
 				throw new IllegalArgumentException("Illegal type assign");
 		}
+		else if( identifier.type instanceof IntArrayType )
+			if( !(n.e instanceof NewArray))
+				throw new IllegalArgumentException("Illegal type assign");
+		
 		n.i.accept(this);
 		n.e.accept(this);
 		
 	}
 
 	public void visit(ArrayAssign n) {
+		Variable identifier;
+		Variable expression1;
+		Variable expression2;
+		
+		if((identifier = this.lastClass.globals.get(n.i.s)) == null)
+			if((identifier = this.lastMethod.vars.get(n.i.s)) == null)
+				throw new IllegalArgumentException("Variable " + n.i.s + " is not declared");
+		
+		if( n.e1 instanceof IdentifierExp ) {
+			if((expression1 = this.lastClass.globals.get( ((IdentifierExp)n.e1).s )) == null)
+				if((expression1 = this.lastMethod.vars.get(((IdentifierExp)n.e1).s)) == null)
+					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
+			
+			if(!expression1.type.getClass().equals(IntegerType.class))
+				throw new IllegalArgumentException("Illegal type assign");
+		}
+		else if( !(n.e1 instanceof IntegerLiteral ||
+			n.e1 instanceof Plus ||
+			n.e1 instanceof Minus ||
+			n.e1 instanceof Times ||
+			n.e1 instanceof ArrayLength) )
+				throw new IllegalArgumentException("Illegal type assign");
+		
+		if( n.e2 instanceof IdentifierExp ) {
+			if((expression2 = this.lastClass.globals.get( ((IdentifierExp)n.e2).s )) == null)
+				if((expression2 = this.lastMethod.vars.get(((IdentifierExp)n.e2).s)) == null)
+					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
+			
+			if(!identifier.type.getClass().equals(expression2.type.getClass()))
+				throw new IllegalArgumentException("Illegal type assign");
+		}
+		else if( !(n.e2 instanceof IntegerLiteral ||
+			n.e2 instanceof Plus ||
+			n.e2 instanceof Minus ||
+			n.e2 instanceof Times ||
+			n.e2 instanceof ArrayLength) )
+				throw new IllegalArgumentException("Illegal type assign");
+		
 		n.i.accept(this);
 		n.e1.accept(this);
 		n.e2.accept(this);
@@ -207,22 +289,22 @@ public class TypeCheckVisitor implements Visitor{
 	}
 	
 	public void visit(Plus n) {
+		Variable variable;
+		
 		if( !(  n.e1 instanceof IntegerLiteral ||
 				n.e1 instanceof IdentifierExp ||
 				n.e1 instanceof Plus ||
 				n.e1 instanceof Minus ||
 				n.e1 instanceof Times ) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			throw new IllegalArgumentException("Illegal sum between noninteger and integer types");
 		
 		if( n.e1 instanceof IdentifierExp ) {
-			if( !this.lastClass.globals.containsKey( ((IdentifierExp)n.e1).s )) {
-				if( !this.lastMethod.vars.containsKey( ((IdentifierExp)n.e1).s ) )
+			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.e1).s ) ) == null )
+				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.e1).s ) ) == null )
 					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
-				if( !this.lastMethod.vars.get(((IdentifierExp)n.e1).s).type.getClass().equals(IntegerType.class) )
-					throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-			}
-			else if( !this.lastClass.globals.get(((IdentifierExp)n.e1).s).type.getClass().equals(IntegerType.class) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+				
+			if( !variable.type.getClass().equals(IntegerType.class) )
+				throw new IllegalArgumentException("Illegal sum between noninteger and integer types");
 		}
 		
 		if( !(  n.e2 instanceof IntegerLiteral ||
@@ -230,17 +312,15 @@ public class TypeCheckVisitor implements Visitor{
 				n.e2 instanceof Plus ||
 				n.e2 instanceof Minus ||
 				n.e2 instanceof Times ) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			throw new IllegalArgumentException("Illegal sum between noninteger and integer types");
 		
 		if( n.e2 instanceof IdentifierExp ) {
-			if( !this.lastClass.globals.containsKey( ((IdentifierExp)n.e2).s )) {
-				if( !this.lastMethod.vars.containsKey( ((IdentifierExp)n.e2).s ) )
+			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.e2).s ) ) == null )
+				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.e2).s ) ) == null )
 					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
-				if( !this.lastMethod.vars.get(((IdentifierExp)n.e2).s).type.getClass().equals(IntegerType.class) )
-					throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-			}
-			else if( !this.lastClass.globals.get(((IdentifierExp)n.e2).s).type.getClass().equals(IntegerType.class) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+				
+			if( !variable.type.getClass().equals(IntegerType.class) )
+				throw new IllegalArgumentException("Illegal sum between noninteger and integer types");
 		}
 		n.e1.accept(this);
 		n.e2.accept(this);
@@ -248,6 +328,8 @@ public class TypeCheckVisitor implements Visitor{
 	}
 
 	public void visit(Minus n) {
+Variable variable;
+		
 		if( !(  n.e1 instanceof IntegerLiteral ||
 				n.e1 instanceof IdentifierExp ||
 				n.e1 instanceof Plus ||
@@ -256,13 +338,11 @@ public class TypeCheckVisitor implements Visitor{
 			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
 		
 		if( n.e1 instanceof IdentifierExp ) {
-			if( !this.lastClass.globals.containsKey( ((IdentifierExp)n.e1).s )) {
-				if( !this.lastMethod.vars.containsKey( ((IdentifierExp)n.e1).s ) )
+			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.e1).s ) ) == null )
+				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.e1).s ) ) == null )
 					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
-				if( !this.lastMethod.vars.get(((IdentifierExp)n.e1).s).type.getClass().equals(IntegerType.class) )
-					throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-			}
-			else if( !this.lastClass.globals.get(((IdentifierExp)n.e1).s).type.getClass().equals(IntegerType.class) )
+				
+			if( !variable.type.getClass().equals(IntegerType.class) )
 				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
 		}
 		
@@ -274,13 +354,11 @@ public class TypeCheckVisitor implements Visitor{
 			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
 		
 		if( n.e2 instanceof IdentifierExp ) {
-			if( !this.lastClass.globals.containsKey( ((IdentifierExp)n.e2).s )) {
-				if( !this.lastMethod.vars.containsKey( ((IdentifierExp)n.e2).s ) )
+			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.e2).s ) ) == null )
+				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.e2).s ) ) == null )
 					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
-				if( !this.lastMethod.vars.get(((IdentifierExp)n.e2).s).type.getClass().equals(IntegerType.class) )
-					throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-			}
-			else if( !this.lastClass.globals.get(((IdentifierExp)n.e2).s).type.getClass().equals(IntegerType.class) )
+				
+			if( !variable.type.getClass().equals(IntegerType.class) )
 				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
 		}
 		n.e1.accept(this);
@@ -289,6 +367,8 @@ public class TypeCheckVisitor implements Visitor{
 	}
 
 	public void visit(Times n) {
+Variable variable;
+		
 		if( !(  n.e1 instanceof IntegerLiteral ||
 				n.e1 instanceof IdentifierExp ||
 				n.e1 instanceof Plus ||
@@ -297,13 +377,11 @@ public class TypeCheckVisitor implements Visitor{
 			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
 		
 		if( n.e1 instanceof IdentifierExp ) {
-			if( !this.lastClass.globals.containsKey( ((IdentifierExp)n.e1).s )) {
-				if( !this.lastMethod.vars.containsKey( ((IdentifierExp)n.e1).s ) )
+			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.e1).s ) ) == null )
+				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.e1).s ) ) == null )
 					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
-				if( !this.lastMethod.vars.get(((IdentifierExp)n.e1).s).type.getClass().equals(IntegerType.class) )
-					throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-			}
-			else if( !this.lastClass.globals.get(((IdentifierExp)n.e1).s).type.getClass().equals(IntegerType.class) )
+				
+			if( !variable.type.getClass().equals(IntegerType.class) )
 				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
 		}
 		
@@ -315,13 +393,11 @@ public class TypeCheckVisitor implements Visitor{
 			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
 		
 		if( n.e2 instanceof IdentifierExp ) {
-			if( !this.lastClass.globals.containsKey( ((IdentifierExp)n.e2).s )) {
-				if( !this.lastMethod.vars.containsKey( ((IdentifierExp)n.e2).s ) )
+			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.e2).s ) ) == null )
+				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.e2).s ) ) == null )
 					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
-				if( !this.lastMethod.vars.get(((IdentifierExp)n.e2).s).type.getClass().equals(IntegerType.class) )
-					throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-			}
-			else if( !this.lastClass.globals.get(((IdentifierExp)n.e2).s).type.getClass().equals(IntegerType.class) )
+				
+			if( !variable.type.getClass().equals(IntegerType.class) )
 				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
 		}
 		n.e1.accept(this);
@@ -336,10 +412,52 @@ public class TypeCheckVisitor implements Visitor{
 	}
 
 	public void visit(ArrayLength n) {
+		Variable variable;
+		
+		if( !(n.e instanceof IdentifierExp) )
+			throw new IllegalArgumentException("Illegal operation for this type");
+		
+		if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.e).s )) == null )
+			if( ( variable = this.lastMethod.vars.get( ((IdentifierExp)n.e).s )) == null )
+				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
+		
+		if( !variable.type.getClass().equals(IntArrayType.class))
+			throw new IllegalArgumentException("Illegal operation for this type");
+		
 		n.e.accept(this);
 	}
 
 	public void visit(Call n) {
+		Variable variable;
+		Class classe;
+		Method method;
+		
+		if( !(n.e instanceof IdentifierExp) )
+			throw new IllegalArgumentException("Illegal operation for this type");
+		
+		if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.e).s ) ) == null )
+			if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.e).s ) ) == null )
+				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
+		
+		if( (classe = this.table.classes.get( ((IdentifierType)variable.type).s )) == null )
+			throw new IllegalArgumentException("Type " + ((IdentifierType)variable.type).s + " not declared");
+			
+		if( (method = classe.methods.get( n.i.s )) == null)
+			throw new IllegalArgumentException("Method "+ n.i.s +" not declared in class " + ((IdentifierType)variable.type).s);
+		
+		if( !(method.params.size() == n.el.size()) ) {
+			System.out.println(method.params.size());
+			throw new IllegalArgumentException("Number of params invalid");
+		}
+		
+		/*Continuar desse ponto*/
+		for(int i = 0; i < method.params.size(); i++) {
+			if( !(method.params.get(i).type.getClass().equals( ((IdentifierExp)n.el.elementAt(i)).s ) )){
+				System.out.println(method.params.get(i).type.getClass());
+				System.out.println((n.el.elementAt(i)));
+				throw new IllegalArgumentException("Illegal arguments passed");}
+		}
+		
 		n.e.accept(this);
 	    n.i.accept(this);
 	    for ( int i = 0; i < n.el.size(); i++ ) {
