@@ -8,4 +8,9 @@ public class This extends Exp {
   public void accept(Visitor v) {
     v.visit(this);
   }
+	@Override
+	public Class<? extends Type> getExpType() {
+		// TODO Auto-generated method stub
+		return Type.class;
+	}
 }

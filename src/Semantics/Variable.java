@@ -10,4 +10,6 @@ public class Variable {
         this.name = name;
         this.type = type;
 	}
+	
+	
 }

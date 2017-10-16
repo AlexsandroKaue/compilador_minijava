@@ -13,5 +13,9 @@ public class MainClass extends ASTNode{
   public void accept(Visitor v) {
     v.visit(this);
   }
+  
+  public String getClassName(){
+	  return i1.s;
+  }
 }
 

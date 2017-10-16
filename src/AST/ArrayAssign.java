@@ -13,5 +13,13 @@ public class ArrayAssign extends Statement {
   public void accept(Visitor v) {
     v.visit(this);
   }
+  
+  public Exp getExpression1(){
+	  return e1;
+  }
+  
+  public Exp getExpression2(){
+	  return e2;
+  }
 }
 

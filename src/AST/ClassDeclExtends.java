@@ -16,4 +16,12 @@ public class ClassDeclExtends extends ClassDecl {
   public void accept(Visitor v) {
     v.visit(this);
   }
+  
+  public String getClassName(){
+	  return i.s;
+  }
+  
+  public String getParentClassName(){
+	  return j.s;
+  }
 }

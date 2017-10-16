@@ -12,4 +12,8 @@ public class ArrayLength extends Exp {
   public void accept(Visitor v) {
     v.visit(this);
   }
+
+	public Class<? extends Type> getExpType() {
+		return IntegerType.class;
+	}
 }

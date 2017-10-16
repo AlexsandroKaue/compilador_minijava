@@ -1,16 +1,21 @@
-import Scanner.*;
-import Semantics.ClassSymbolTable;
-import Parser.*;
-import AST.*;
-import AST.Visitor.*;
-import Throwables.*;
 import java_cup.runtime.Symbol;
+import AST.Program;
+import AST.Visitor.BuildClassSymbolTable;
+import AST.Visitor.BuildGlobalSymbolTable;
+import AST.Visitor.BuildLocalSymbolTable;
+import AST.Visitor.PrettyPrintVisitor;
+import AST.Visitor.TypeCheckVisitor;
+import Parser.parser;
+import Scanner.scanner;
+import Semantics.ClassSymbolTable;
+import Throwables.CompilerException;
 
-import java.util.*;
 
-public class TestParser {
-    public static void main(String [] args) {
-        try {
+public class TestSemantics {
+
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		try {
             // create a scanner on the input file
             scanner s = new scanner(System.in);
             parser p = new parser(s);
@@ -23,12 +28,19 @@ public class TestParser {
             }*/
             Program program = (Program)root.value;
             ClassSymbolTable main = new ClassSymbolTable();
+            program.accept(new BuildGlobalSymbolTable(main));
             program.accept(new BuildClassSymbolTable(main));
+            program.accept(new BuildLocalSymbolTable(main));
             program.accept(new TypeCheckVisitor(main));
             program.accept(new PrettyPrintVisitor());
  			System.out.print("\n");
-            System.out.print("\nParsing successfull"); 
+            System.out.print("\nSemantic analisys successfull"); 
         } catch (CompilerException e) {
+            // an error in the user's arguments or input, or some
+            // other kind of error that we've already handled in the
+            // appropriate way (not a bug that the error got here)
+            System.err.println(e.getMessage());
+        } catch (IllegalArgumentException e) {
             // an error in the user's arguments or input, or some
             // other kind of error that we've already handled in the
             // appropriate way (not a bug that the error got here)
@@ -41,5 +53,6 @@ public class TestParser {
             // print out a stack dump
             e.printStackTrace();
         }
-    }
+	}
+
 }

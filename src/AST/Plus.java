@@ -1,7 +1,7 @@
 package AST;
 import AST.Visitor.Visitor;
 
-public class Plus extends Exp {
+public class Plus extends Exp implements BinaryIntegerOperation{
   public Exp e1,e2;
   
   public Plus(Exp ae1, Exp ae2, int ln) { 
@@ -12,4 +12,18 @@ public class Plus extends Exp {
   public void accept(Visitor v) {
     v.visit(this);
   }
+
+	public Exp getExpression1() {
+		// TODO Auto-generated method stub
+		return e1;
+	}
+	
+	public Exp getExpression2() {
+		// TODO Auto-generated method stub
+		return e2;
+	}
+	
+	public Class<? extends Type> getExpType(){
+		return IntegerType.class;
+	}
 }

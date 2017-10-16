@@ -3,17 +3,17 @@ package Semantics;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SymbolTable {
+public class ClassSymbolTable {
 
-	public Map<String, Class> classes;
+	public Map<String, Classe> classes;
 
-	public SymbolTable() {
-        classes = new HashMap<String, Class>();
+	public ClassSymbolTable() {
+        classes = new HashMap<String, Classe>();
     }
 
 	public boolean addClass(String id, String parent) {
 		if (classes.containsKey(id)) return false;
-		classes.put(id, new Class(id, parent));
+		classes.put(id, new Classe(id, parent));
 		return true;
 	}
 }

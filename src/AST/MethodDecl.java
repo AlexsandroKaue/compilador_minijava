@@ -18,4 +18,12 @@ public class MethodDecl extends ASTNode {
   public void accept(Visitor v) {
     v.visit(this);
   }
+  
+  public String getMethodName(){
+	  return i.s;
+  }
+  
+  public Type getMethodType(){
+	  return t;
+  }
 }

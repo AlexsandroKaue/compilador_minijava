@@ -7,14 +7,14 @@ import AST.Identifier;
 import AST.IdentifierType;
 import AST.Type;
 
-public class Class {
+public class Classe {
 	public String name;
     public Map<String, Method> methods;
     public Map<String, Variable> globals;
     public String parent;
     public Type type;
     
-    public Class(String name, String parent){
+    public Classe(String name, String parent){
     	this.name = name;
     	this.parent = parent;
     	this.methods = new HashMap<String, Method>();

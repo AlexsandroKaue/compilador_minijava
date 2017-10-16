@@ -13,4 +13,12 @@ public class VarDecl extends ASTNode {
   public void accept(Visitor v) {
     v.visit(this);
   }
+  
+  public String getVarName(){
+	  return i.s;
+  }
+  
+  public Type getVarType(){
+	  return t;
+  }
 }

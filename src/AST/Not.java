@@ -2,6 +2,7 @@ package AST;
 import AST.Visitor.Visitor;
 
 public class Not extends Exp {
+	private BooleanType type;
   public Exp e;
   
   public Not(Exp ae, int ln) {
@@ -11,5 +12,9 @@ public class Not extends Exp {
 
   public void accept(Visitor v) {
     v.visit(this);
+  }
+  
+  public Class<? extends Type> getExpType() {
+	  return BooleanType.class;
   }
 }

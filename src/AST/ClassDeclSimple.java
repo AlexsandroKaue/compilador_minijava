@@ -14,4 +14,9 @@ public class ClassDeclSimple extends ClassDecl {
   public void accept(Visitor v) {
     v.visit(this);
   }
+  
+  public String getClassName(){
+	  return i.s;
+  }
+  
 }

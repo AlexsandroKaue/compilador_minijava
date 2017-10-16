@@ -8,4 +8,8 @@ public class True extends Exp {
   public void accept(Visitor v) {
     v.visit(this);
   }
+  
+  public Class<? extends Type> getExpType() {
+	  return BooleanType.class;
+  }
 }

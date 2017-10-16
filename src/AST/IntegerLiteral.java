@@ -1,7 +1,7 @@
 package AST;
 import AST.Visitor.Visitor;
 
-public class IntegerLiteral extends Exp {
+public class IntegerLiteral extends Exp{
   public int i;
 
   public IntegerLiteral(int ai, int ln) {
@@ -11,5 +11,9 @@ public class IntegerLiteral extends Exp {
 
   public void accept(Visitor v) {
     v.visit(this);
+  }
+  
+  public Class<? extends Type> getExpType(){
+	  return IntegerType.class;
   }
 }
