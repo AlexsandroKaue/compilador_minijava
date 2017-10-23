@@ -5,6 +5,7 @@ public class Call extends Exp {
   public Exp e;
   public Identifier i;
   public ExpList el;
+  public Type t;
   
   public Call(Exp ae, Identifier ai, ExpList ael, int ln) {
     super(ln);
@@ -14,10 +15,14 @@ public class Call extends Exp {
   public void accept(Visitor v) {
     v.visit(this);
   }
+  
+  public Exp getExpression() {
+	  return e;
+  }
 
 	@Override
 	public Class<? extends Type> getExpType() {
 		// TODO Auto-generated method stub
-		return Type.class;
+		return t.getClass();
 	}
 }

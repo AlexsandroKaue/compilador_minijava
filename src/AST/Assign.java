@@ -13,5 +13,10 @@ public class Assign extends Statement {
   public void accept(Visitor v) {
     v.visit(this);
   }
+  
+  public Exp getExpression() { 
+	  return e;
+  }
+  
 }
 

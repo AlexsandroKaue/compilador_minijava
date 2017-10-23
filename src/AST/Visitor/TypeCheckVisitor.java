@@ -167,32 +167,30 @@ public class TypeCheckVisitor implements Visitor{
 			if((identifier = this.lastMethod.vars.get(n.i.s)) == null)
 				throw new IllegalArgumentException("Variable " + n.i.s + " is not declared");
 		
-		if( n.e instanceof IdentifierExp){
+		if( n.getExpression() instanceof IdentifierExp){
 			
-			if((expression = this.lastClass.globals.get( ((IdentifierExp)n.e).s )) == null)
-				if((expression = this.lastMethod.vars.get(((IdentifierExp)n.e).s)) == null)
+			if((expression = this.lastClass.globals.get( ((IdentifierExp)n.getExpression()).s )) == null)
+				if((expression = this.lastMethod.vars.get(((IdentifierExp)n.getExpression()).s)) == null)
 					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
 			
-			if(!identifier.type.getClass().equals(expression.type.getClass()))
+			if(!expression.type.getClass().equals(identifier.type.getClass()))
 				throw new IllegalArgumentException("Illegal type assign");
-		}
-		else if( identifier.type instanceof IntegerType ) {
-			if( !(  n.e.getExpType().equals(IntegerType.class)) )
+			
+		}else if(n.getExpression() instanceof Call){
+			Variable variable;
+			Classe classe;
+			Method metodo;
+			if( (variable = this.lastClass.globals.get( ((IdentifierExp)((Call)n.getExpression()).getExpression()).s ) ) == null )
+				variable = this.lastMethod.vars.get( ((IdentifierExp)((Call)n.getExpression()).getExpression()).s  );
+			
+			classe = this.table.classes.get( ((IdentifierType)variable.type).s );
+			metodo = classe.methods.get(((Call)n.getExpression()).i.s);
+			if(!identifier.type.getClass().equals(metodo.type.getClass()))
 				throw new IllegalArgumentException("Illegal type assign");
-		}
-		else if( identifier.type instanceof BooleanType ) {
-			if( !(n.e.getExpType().equals(BooleanType.class)) )
-				throw new IllegalArgumentException("Illegal type assign");			
-		}
-		else if( identifier.type instanceof IdentifierType ) {
-			if( !( n.e.getExpType().equals(IdentifierType.class)) )
-				throw new IllegalArgumentException("Illegal type assign");
-			if( !( ((IdentifierType)identifier.type).s.equals( ((NewObject)n.e).i.s )) )
-				throw new IllegalArgumentException("Illegal type assign");
-		}
-		else if( identifier.type instanceof IntArrayType )
-			if( !(n.e.getExpType().equals(IntArrayType.class)) )
-				throw new IllegalArgumentException("Illegal type assign");
+			
+		}else if(!identifier.type.getClass().equals(n.getExpression().getExpType())){
+			throw new IllegalArgumentException("Illegal type assign");
+	   }
 		
 		n.i.accept(this);
 		n.e.accept(this);
@@ -224,7 +222,7 @@ public class TypeCheckVisitor implements Visitor{
 				if((expression2 = this.lastMethod.vars.get(((IdentifierExp)n.e2).s)) == null)
 					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
 			
-			if(!identifier.type.getClass().equals(expression2.type.getClass()))
+			if(!expression2.type.getClass().equals(identifier.type.getClass()))
 				throw new IllegalArgumentException("Illegal type assign");
 		}
 		else 
@@ -414,7 +412,28 @@ public class TypeCheckVisitor implements Visitor{
 	public void visit(Call  n) {
 		Variable variable;
 		Classe classe;
-		Method method;
+		Method metodo;
+		
+		if(n.e.getExpType().equals(IdentifierType.class)) {
+			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.e).s ) ) == null )
+				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.e).s ) ) == null )
+					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
+			
+			classe = this.table.classes.get( ((IdentifierType)variable.type).s );
+			if( (metodo = classe.methods.get(n.i.s)) == null )
+				throw new IllegalArgumentException("Method "+n.i.s+" not declared in "+classe.name);
+			
+			
+			if( metodo.params.size() != n.el.size()){
+				throw new IllegalArgumentException("Different number of arguments in "+metodo.name);
+			}
+			
+			for(int i=0; i<metodo.params.size(); i++) {
+				if( !(metodo.params.get(i).type.getClass().equals(n.el.elementAt(i).getExpType())) ) {
+					throw new IllegalArgumentException("Illegal type for method parameters  "+metodo.name);
+				}
+			}
+		}
 		
 		/*if( !(n.e.getExpType().equals(IdentifierType.class) ||
 			  n.e instanceof Call ||
