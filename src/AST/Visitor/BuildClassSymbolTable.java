@@ -19,7 +19,7 @@ public class BuildClassSymbolTable implements Visitor{
 	// Return added for the toy example language---they are subsumed in the MiniJava AST by the MethodDecl nodes.
 	  // Exp e;
 	  public void visit(Return n) {
-	    n.e.accept(this);
+	    n.e.accept(this); 
 	  }
 	  
 	  
@@ -63,6 +63,8 @@ public class BuildClassSymbolTable implements Visitor{
 	  // MethodDeclList ml;
 	  public void visit(ClassDeclExtends n) {
 		this.lastClass = this.tableClass.classes.get(n.getClassName());
+		//this.lastClass.globals.putAll(this.tableClass.classes.get(this.lastClass.parent).globals);
+		//this.lastClass.methods.putAll(this.tableClass.classes.get(this.lastClass.parent).methods);
 	    n.i.accept(this);
 	    n.j.accept(this);
 	    for ( int i = 0; i < n.vl.size(); i++ ) {
@@ -77,13 +79,18 @@ public class BuildClassSymbolTable implements Visitor{
 	  // Type t;
 	  // Identifier i;
 	  public void visit(VarDecl n) {
-		  if(this.lastMethod == null)
-				if(!this.lastClass.addVar(n.getVarName(), n.getVarType()))
-					throw new IllegalArgumentException("Variable " + n.getVarName() + " already exists");
-				
-			
 		  n.t.accept(this);
 		  n.i.accept(this);
+		  
+		  if(this.lastMethod == null) {
+			  	if(n.t instanceof IdentifierType)
+			  		if( tableClass.classes.get( ((IdentifierType)n.t).s) == null )
+			  			throw new IllegalArgumentException("Classe não declarada "+ ((IdentifierType)n.t).s);
+			  	
+				if(!this.lastClass.addVar(n.i.s, n.t))
+					throw new IllegalArgumentException("Variable " + n.i.s + " already exists");
+		  }	
+		  
 	  }
 
 	  // Type t;

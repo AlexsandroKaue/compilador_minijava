@@ -14,8 +14,7 @@ public class NewArray extends Exp {
   }
 
 	@Override
-	public Class<? extends Type> getExpType() {
-		// TODO Auto-generated method stub
-		return IntArrayType.class;
+	public Type getType() {
+		return new IntArrayType(0);
 	}
 }

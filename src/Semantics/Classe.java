@@ -23,7 +23,7 @@ public class Classe {
     }
     
     public boolean addMethod(String name, Type type){
-    	if(methods.containsKey(name)) return false;
+    	//if(methods.containsKey(name)) return false;
     	methods.put(name, new Method(name, type));
     	return true;
     }

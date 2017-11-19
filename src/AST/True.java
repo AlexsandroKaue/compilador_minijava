@@ -9,7 +9,7 @@ public class True extends Exp {
     v.visit(this);
   }
   
-  public Class<? extends Type> getExpType() {
-	  return BooleanType.class;
+  public Type getType() {
+	  return new BooleanType(0);
   }
 }

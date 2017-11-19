@@ -13,15 +13,7 @@ public class And extends Exp {
     v.visit(this);
   }
   
-  public Exp getExpression1(){
-	  return e1;
-  }
-  
-  public Exp getExpression2(){
-	  return e2;
-  }
-  
-  public Class<? extends Type> getExpType(){
-	return BooleanType.class;
+  public Type getType(){
+	return new BooleanType(0);
   }
 }

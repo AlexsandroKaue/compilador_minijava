@@ -2,13 +2,13 @@ import java_cup.runtime.Symbol;
 import AST.Program;
 import AST.Visitor.BuildClassSymbolTable;
 import AST.Visitor.BuildGlobalSymbolTable;
-import AST.Visitor.BuildLocalSymbolTable;
 import AST.Visitor.PrettyPrintVisitor;
 import AST.Visitor.TypeCheckVisitor;
 import Parser.parser;
 import Scanner.scanner;
 import Semantics.ClassSymbolTable;
 import Throwables.CompilerException;
+import Throwables.SemanticsException;
 
 
 public class TestSemantics {
@@ -30,7 +30,6 @@ public class TestSemantics {
             ClassSymbolTable main = new ClassSymbolTable();
             program.accept(new BuildGlobalSymbolTable(main));
             program.accept(new BuildClassSymbolTable(main));
-            program.accept(new BuildLocalSymbolTable(main));
             program.accept(new TypeCheckVisitor(main));
             program.accept(new PrettyPrintVisitor());
  			System.out.print("\n");
@@ -45,6 +44,8 @@ public class TestSemantics {
             // other kind of error that we've already handled in the
             // appropriate way (not a bug that the error got here)
             System.err.println(e.getMessage());
+        } catch(SemanticsException e) {
+        	System.err.println(e.getMessage());
         } catch (Exception e) {
             // yuck: some kind of error in the compiler implementation
             // that we're not expecting (a bug!)

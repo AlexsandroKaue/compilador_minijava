@@ -13,7 +13,7 @@ public class IntegerLiteral extends Exp{
     v.visit(this);
   }
   
-  public Class<? extends Type> getExpType(){
-	  return IntegerType.class;
+  public Type getType(){
+	  return new IntegerType(0);
   }
 }

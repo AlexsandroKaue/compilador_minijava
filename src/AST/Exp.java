@@ -7,5 +7,5 @@ public abstract class Exp extends ASTNode {
     }
     public abstract void accept(Visitor v);
     
-    public abstract Class<? extends Type> getExpType();
+    public abstract Type getType();
 }

@@ -14,11 +14,8 @@ public class VarDecl extends ASTNode {
     v.visit(this);
   }
   
-  public String getVarName(){
-	  return i.s;
+  public int getLine() {
+	  return this.line_number;
   }
   
-  public Type getVarType(){
-	  return t;
-  }
 }

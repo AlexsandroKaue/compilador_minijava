@@ -270,6 +270,7 @@ public class PrettyPrintVisitor implements Visitor {
   // Identifier i;
   // ExpList el;
   public void visit(Call n) {
+	System.out.print("(");
     n.e.accept(this);
     System.out.print(".");
     n.i.accept(this);
@@ -278,6 +279,7 @@ public class PrettyPrintVisitor implements Visitor {
         n.el.elementAt(i).accept(this);
         if ( i+1 < n.el.size() ) { System.out.print(", "); }
     }
+    System.out.print(")");
     System.out.print(")");
   }
 

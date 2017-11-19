@@ -14,8 +14,8 @@ public class ArrayLookup extends Exp {
   }
 
 	@Override
-	public Class<? extends Type> getExpType() {
+	public Type getType() {
 		// TODO Auto-generated method stub
-		return IntegerType.class;
+		return new IntegerType(0);
 	}
 }

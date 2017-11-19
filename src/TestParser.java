@@ -23,8 +23,8 @@ public class TestParser {
             }*/
             Program program = (Program)root.value;
             ClassSymbolTable main = new ClassSymbolTable();
-            program.accept(new BuildClassSymbolTable(main));
-            program.accept(new TypeCheckVisitor(main));
+            //program.accept(new BuildClassSymbolTable(main));
+           //program.accept(new TypeCheckVisitor(main));
             program.accept(new PrettyPrintVisitor());
  			System.out.print("\n");
             System.out.print("\nParsing successfull"); 

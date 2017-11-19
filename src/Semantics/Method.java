@@ -25,5 +25,22 @@ public class Method {
         vars.put(id, new Variable(id, type));
         return true;
     }
+    
+    public boolean addParam(String id, Type type) {
+    	for(Variable var : params) {
+    		if(var.name.equals(id)) 
+    			return false;
+    	}
+    	params.add(new Variable(id, type));
+        return true;
+    }
+    
+    public Variable getParam(String id) {
+    	for(Variable var : params) {
+    		if(var.name.equals(id)) 
+    			return var;
+    	}
+    	return null;
+    }
 
 }

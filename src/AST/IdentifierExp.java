@@ -3,6 +3,7 @@ import AST.Visitor.Visitor;
 
 public class IdentifierExp extends Exp{
   public String s;
+  private Type type;
   
   public IdentifierExp(String as, int ln) { 
     super(ln);
@@ -14,9 +15,14 @@ public class IdentifierExp extends Exp{
   }
 
 	@Override
-	public Class<? extends Type> getExpType() {
+	public Type getType() {
 		// TODO Auto-generated method stub
-		return IdentifierType.class;
+		return type;
+	}
+
+	public void setType(Type type) {
+		// TODO Auto-generated method stub
+		this.type = type;
 	}
   
 }

@@ -14,9 +14,5 @@ public class Assign extends Statement {
     v.visit(this);
   }
   
-  public Exp getExpression() { 
-	  return e;
-  }
-  
 }
 

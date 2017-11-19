@@ -1,10 +1,10 @@
 package AST.Visitor;
 
-
 import Semantics.Method;
 import Semantics.ClassSymbolTable;
 import Semantics.Classe;
 import Semantics.Variable;
+import Throwables.SemanticsException;
 import AST.*;
 import AST.Visitor.Visitor;
 
@@ -65,12 +65,23 @@ public class TypeCheckVisitor implements Visitor{
 		
 	}
 
-	public void visit(VarDecl n) {	
+	public void visit(VarDecl n)  {
 		n.t.accept(this);
 		n.i.accept(this);
+		
+		//Constroi a tabela de símbolos local
+		if(this.lastMethod != null) {
+			if(n.t instanceof IdentifierType)
+		  		if( this.table.classes.get( ((IdentifierType)n.t).s) == null )
+		  			throw new SemanticsException("Classe não declarada: "+ ((IdentifierType)n.t).s, n.line_number);
+			
+			if(!this.lastMethod.addVar(n.i.s, n.t))
+				throw new SemanticsException(VARIAVEL_JA_DECLARADA + n.i.s, n.line_number);
+		}
 	}
 
 	public void visit(MethodDecl n) {
+		Variable var;
 		this.lastMethod = this.lastClass.methods.get(n.getMethodName());
 		n.t.accept(this);
 		n.i.accept(this);
@@ -84,6 +95,17 @@ public class TypeCheckVisitor implements Visitor{
 			n.sl.elementAt(i).accept(this);
 		}
 		n.e.accept(this);
+		
+		if( n.e instanceof IdentifierExp) {
+			if((var = getVariavel( ((IdentifierExp)n.e).s )) == null)
+				throw new SemanticsException(VARIAVEL_NAO_DECLARADA +((IdentifierExp)n.e).s, n.line_number);
+			
+			((IdentifierExp)n.e).setType(var.type);
+		}
+		
+		if(!isTypeEqual(this.lastMethod.type, n.e.getType()))
+			throw new SemanticsException(TIPO_ERRADO, n.line_number);
+		
 		this.lastMethod = null;
 		
 	}
@@ -121,38 +143,46 @@ public class TypeCheckVisitor implements Visitor{
 	}
 
 	public void visit(If n) {
-		Variable identifier;
-		
-		if( n.e instanceof IdentifierExp){
-			if((identifier = this.lastClass.globals.get( ((IdentifierExp)n.e).s )) == null)
-				if((identifier = this.lastMethod.vars.get(((IdentifierExp)n.e).s)) == null)
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
-			
-			if( !(identifier.type instanceof BooleanType) )
-				throw new IllegalArgumentException("Illegal type in if expression");
-		}else if( !(n.e.getExpType().getClass().equals(BooleanType.class)) ) 
-				throw new IllegalArgumentException("Illegal type in if expression");
-		
 		n.e.accept(this);
 		n.s1.accept(this);
 		n.s2.accept(this);
+		
+		Variable identifier;
+		
+		if( n.e instanceof IdentifierExp) {
+			if((identifier = getVariavel( ((IdentifierExp)n.e).s )) == null)
+				throw new SemanticsException(VARIAVEL_NAO_DECLARADA +((IdentifierExp)n.e).s, n.line_number);
+				//throw new IllegalArgumentException("Variável " + ((IdentifierExp)n.e).s + " não foi declarada");
+			
+			if( !(identifier.type instanceof BooleanType) )
+				throw new SemanticsException(TIPO_ERRADO + n.getClass().getName() , n.line_number);
+			
+			((IdentifierExp)n.e).setType(identifier.type);
+		}
+		
+		if( !(n.e.getType() instanceof BooleanType) ) 
+			throw new SemanticsException(TIPO_ERRADO + n.toString() , n.line_number);
+		
 	}
 
 	public void visit(While n) {
-		Variable identifier;
-		
-		if( n.e instanceof IdentifierExp){
-			if((identifier = this.lastClass.globals.get( ((IdentifierExp)n.e).s )) == null)
-				if((identifier = this.lastMethod.vars.get(((IdentifierExp)n.e).s)) == null)
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
-			
-			if( !(identifier.type instanceof BooleanType) )
-				throw new IllegalArgumentException("Illegal type in while expression");
-		}else if( !(n.e.getExpType().getClass().equals(BooleanType.class)) ) 
-				throw new IllegalArgumentException("Illegal type in while expression");
-		
 		n.e.accept(this);
 		n.s.accept(this);
+		
+		Variable identifier;
+		
+		if( n.e instanceof IdentifierExp) {
+			if((identifier = getVariavel( ((IdentifierExp)n.e).s )) == null)
+				throw new SemanticsException(VARIAVEL_NAO_DECLARADA+ ((IdentifierExp)n.e).s, n.line_number);
+			
+			if( !(identifier.type instanceof BooleanType) )
+				throw new SemanticsException(TIPO_ERRADO + n.toString() , n.line_number);
+			
+			((IdentifierExp)n.e).setType(identifier.type);
+		}
+		
+		if( !(n.e.getType() instanceof BooleanType) )
+			throw new SemanticsException(TIPO_ERRADO, n.line_number);
 	}
 
 	public void visit(Print n) {
@@ -160,322 +190,348 @@ public class TypeCheckVisitor implements Visitor{
 	}
 
 	public void visit(Assign n) {
-		Variable identifier;
-		Variable expression;
-		
-		if((identifier = this.lastClass.globals.get(n.i.s)) == null)
-			if((identifier = this.lastMethod.vars.get(n.i.s)) == null)
-				throw new IllegalArgumentException("Variable " + n.i.s + " is not declared");
-		
-		if( n.getExpression() instanceof IdentifierExp){
-			
-			if((expression = this.lastClass.globals.get( ((IdentifierExp)n.getExpression()).s )) == null)
-				if((expression = this.lastMethod.vars.get(((IdentifierExp)n.getExpression()).s)) == null)
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
-			
-			if(!expression.type.getClass().equals(identifier.type.getClass()))
-				throw new IllegalArgumentException("Illegal type assign");
-			
-		}else if(n.getExpression() instanceof Call){
-			Variable variable;
-			Classe classe;
-			Method metodo;
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)((Call)n.getExpression()).getExpression()).s ) ) == null )
-				variable = this.lastMethod.vars.get( ((IdentifierExp)((Call)n.getExpression()).getExpression()).s  );
-			
-			classe = this.table.classes.get( ((IdentifierType)variable.type).s );
-			metodo = classe.methods.get(((Call)n.getExpression()).i.s);
-			if(!identifier.type.getClass().equals(metodo.type.getClass()))
-				throw new IllegalArgumentException("Illegal type assign");
-			
-		}else if(!identifier.type.getClass().equals(n.getExpression().getExpType())){
-			throw new IllegalArgumentException("Illegal type assign");
-	   }
-		
 		n.i.accept(this);
 		n.e.accept(this);
+		
+		Variable var;
+		
+		if(getVariavel(n.i.s) == null)
+			throw new IllegalArgumentException("Variable " + n.i.s + " is not declared");
+		
+		if(n.e instanceof IdentifierExp) {
+			if( (var = getVariavel(((IdentifierExp)n.e).s)) == null )
+				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
+			((IdentifierExp)n.e).setType(var.type);
+		}
+		
+		if(!isTypeEqual(getVariavel(n.i.s).type, n.e.getType()))
+			throw new IllegalArgumentException("Atribução não permitida para esse tipo");
 		
 	}
 
 	public void visit(ArrayAssign n) {
-		Variable identifier;
-		Variable expression1;
-		Variable expression2;
-		
-		if((identifier = this.lastClass.globals.get(n.i.s)) == null)
-			if((identifier = this.lastMethod.vars.get(n.i.s)) == null)
-				throw new IllegalArgumentException("Variable " + n.i.s + " is not declared");
-		
-		if( n.getExpression1() instanceof IdentifierExp ) {
-			if((expression1 = this.lastClass.globals.get( ((IdentifierExp)n.e1).s )) == null)
-				if((expression1 = this.lastMethod.vars.get(((IdentifierExp)n.e1).s)) == null)
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
-			
-			if(!expression1.type.getClass().equals(IntegerType.class))
-				throw new IllegalArgumentException("Illegal type assign");
-		}
-		else if( !(n.getExpression1().getExpType().equals(IntegerType.class)) )
-				throw new IllegalArgumentException("Illegal type assign");
-		
-		if( n.getExpression2() instanceof IdentifierExp ) {
-			if((expression2 = this.lastClass.globals.get( ((IdentifierExp)n.e2).s )) == null)
-				if((expression2 = this.lastMethod.vars.get(((IdentifierExp)n.e2).s)) == null)
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
-			
-			if(!expression2.type.getClass().equals(identifier.type.getClass()))
-				throw new IllegalArgumentException("Illegal type assign");
-		}
-		else 
-			if( !(n.getExpression2().getExpType().equals(IntegerType.class)) )
-				throw new IllegalArgumentException("Illegal type assign");
-		
 		n.i.accept(this);
 		n.e1.accept(this);
 		n.e2.accept(this);
+		
+		Variable identifier;
+		Variable var;
+		
+		if((identifier = getVariavel(n.i.s)) == null)
+			throw new IllegalArgumentException("Variable " + n.i.s + " is not declared");
+		
+		if(!(identifier.type instanceof IntArrayType))
+			throw new IllegalArgumentException("Variable " + n.i.s + " is not an array type");
+		
+		if( n.e1 instanceof IdentifierExp ) {
+			if((var = getVariavel( ((IdentifierExp)n.e1).s )) == null)
+				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
+			
+			if(!(var.type instanceof IntegerType))
+				throw new IllegalArgumentException("Illegal type assign");
+			
+			((IdentifierExp)n.e1).setType(var.type);
+		}
+		
+		if( !(n.e1.getType() instanceof IntegerType) )
+			throw new IllegalArgumentException("Illegal type assign");
+		
+		if( n.e2 instanceof IdentifierExp ) {
+			if((var = getVariavel( ((IdentifierExp)n.e2).s )) == null)
+				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
+			
+			if( !(var.type instanceof IntegerType) )
+				throw new IllegalArgumentException("Illegal type assign");
+			
+			((IdentifierExp)n.e2).setType(var.type);
+		} 
+		
+		if( !(n.e2.getType() instanceof IntegerType) )
+			throw new IllegalArgumentException("Illegal type assign");
+		
 	}
 
 	public void visit(And n) {
-		Variable variable;
-		
-		if( !( n.getExpression1().getExpType().equals(BooleanType.class)) )
-			throw new IllegalArgumentException("Illegal operation between non boolean and boolean types");
-		
-		if( !(  n.getExpression2().getExpType().equals(BooleanType.class)) )
-			throw new IllegalArgumentException("Illegal operation between non boolean and boolean types");
-		
-		if( n.getExpression1() instanceof IdentifierExp ) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.getExpression1()).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.getExpression1()).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.getExpression1()).s + " is not declared");
-				
-			if( !variable.type.getClass().equals(BooleanType.class) )
-				throw new IllegalArgumentException("Illegal operation between non boolean and boolean types");
-		}
-		
-		if( n.getExpression2() instanceof IdentifierExp ) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.getExpression2()).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.getExpression2()).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.getExpression2()).s + " is not declared");
-				
-			if( !variable.type.getClass().equals(BooleanType.class) )
-				throw new IllegalArgumentException("Illegal operation between non boolean and boolean types");
-		}
 		n.e1.accept(this);
 		n.e2.accept(this);
+		
+		Variable var;
+		
+		if( n.e1 instanceof IdentifierExp ) {
+			
+			if( (var = getVariavel( ((IdentifierExp)n.e1).s )) == null)
+				throw new IllegalArgumentException("Variável " + ((IdentifierExp)n.e1).s + " não foi declarada");
+				
+			if( !(var.type instanceof BooleanType) )
+				throw new IllegalArgumentException("Illegal operation between non boolean and boolean types");
+			
+			((IdentifierExp)n.e1).setType(var.type);
+		}
+		
+		if( n.e2 instanceof IdentifierExp ) {
+			if( (var = getVariavel( ((IdentifierExp)n.e2).s ) ) == null )
+				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
+				
+			if( !(var.type instanceof BooleanType) )
+				throw new IllegalArgumentException("Illegal operation between non boolean and boolean types");
+			
+			((IdentifierExp)n.e2).setType(var.type);
+		}
+		
+		if( !( n.e1.getType() instanceof BooleanType) )
+			throw new IllegalArgumentException("Illegal operation between non boolean and boolean types");
+		
+		if( !(  n.e2.getType() instanceof BooleanType) )
+			throw new IllegalArgumentException("Illegal operation between non boolean and boolean types");
+		
 	}
 
 	public void visit(LessThan n) {
-		Variable variable;
-		
-		if( !( n.getExpression1().getExpType().equals(IntegerType.class)) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		
-		if( !(  n.getExpression2().getExpType().equals(IntegerType.class)) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		
-		if( n.getExpression1() instanceof IdentifierExp ) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.getExpression1()).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.getExpression1()).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.getExpression1()).s + " is not declared");
-				
-			if( !variable.type.getClass().equals(IntegerType.class) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		}
-		
-		if( n.getExpression2() instanceof IdentifierExp ) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.getExpression2()).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.getExpression2()).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.getExpression2()).s + " is not declared");
-				
-			if( !variable.type.getClass().equals(IntegerType.class) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		}
 		n.e1.accept(this);
 		n.e2.accept(this);
+		
+		Variable var;
+		
+		if( n.e1 instanceof IdentifierExp ) {
+			if( (var = getVariavel( ((IdentifierExp)n.e1).s ) ) == null )
+				throw new IllegalArgumentException("Variável " + ((IdentifierExp)n.e1).s + " não foi declarada");
+				
+			if( !(var.type instanceof IntegerType) )
+				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			
+			((IdentifierExp)n.e1).setType(var.type);
+		}
+		
+		if( n.e2 instanceof IdentifierExp ) {
+			if( (var = getVariavel( ((IdentifierExp)n.e2).s ) ) == null )
+				throw new IllegalArgumentException("Variável " + ((IdentifierExp)n.e2).s + " não foi declarada");
+				
+			if( !(var.type instanceof IntegerType) )
+				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			
+			((IdentifierExp)n.e2).setType(var.type);
+		}
+		
+		if( !( n.e1.getType() instanceof IntegerType) )
+			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+		
+		if( !(  n.e2.getType() instanceof IntegerType) )
+			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+		
 	}
 	
 	public void visit(Plus n) {
-		//binaryIntegerOperationCheck(n);
-		Variable variable;
-		
-		if( !( n.getExpression1().getExpType().equals(IntegerType.class)) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		
-		if( !(  n.getExpression2().getExpType().equals(IntegerType.class)) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		
-		if( n.getExpression1() instanceof IdentifierExp ) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.getExpression1()).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.getExpression1()).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.getExpression1()).s + " is not declared");
-				
-			if( !variable.type.getClass().equals(IntegerType.class) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		}
-		
-		if( n.getExpression2() instanceof IdentifierExp ) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.getExpression2()).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.getExpression2()).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.getExpression2()).s + " is not declared");
-				
-			if( !variable.type.getClass().equals(IntegerType.class) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		}
 		n.e1.accept(this);
 		n.e2.accept(this);
+		
+		Variable var;
+		
+		if( n.e1 instanceof IdentifierExp ) {
+			if( (var = getVariavel( ((IdentifierExp)n.e1).s ) ) == null )
+				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
+				
+			if( !(var.type instanceof IntegerType) )
+				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			
+			((IdentifierExp)n.e1).setType(var.type);
+		}
+		
+		if( n.e2 instanceof IdentifierExp ) {
+			if( (var = this.lastClass.globals.get( ((IdentifierExp)n.e2).s ) ) == null )
+				if( (var = this.lastMethod.vars.get( ((IdentifierExp)n.e2).s ) ) == null )
+					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
+				
+			if( !(var.type instanceof IntegerType) )
+				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			
+			((IdentifierExp)n.e2).setType(var.type);
+		}
+		
+		if( !( n.e1.getType() instanceof IntegerType) )
+			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+		
+		if( !(  n.e2.getType() instanceof IntegerType) )
+			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
 		
 	}
 
 	public void visit(Minus n) {
-		Variable variable;
-		
-		if( !( n.getExpression1().getExpType().equals(IntegerType.class)) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		
-		if( !(  n.getExpression2().getExpType().equals(IntegerType.class)) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		
-		if( n.getExpression1() instanceof IdentifierExp ) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.getExpression1()).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.getExpression1()).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.getExpression1()).s + " is not declared");
-				
-			if( !variable.type.getClass().equals(IntegerType.class) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		}
-		
-		if( n.getExpression2() instanceof IdentifierExp ) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.getExpression2()).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.getExpression2()).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.getExpression2()).s + " is not declared");
-				
-			if( !variable.type.getClass().equals(IntegerType.class) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		}
 		n.e1.accept(this);
 		n.e2.accept(this);
+		
+		Variable var;
+		
+		if( n.e1 instanceof IdentifierExp ) {
+			if( (var = getVariavel( ((IdentifierExp)n.e1).s ) ) == null )
+				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
+				
+			if( !(var.type instanceof IntegerType) )
+				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			
+			((IdentifierExp)n.e1).setType(var.type);
+		}
+		
+		if( n.e2 instanceof IdentifierExp ) {
+			if( (var = getVariavel( ((IdentifierExp)n.e2).s ) ) == null )
+				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
+				
+			if( !(var.type instanceof IntegerType) )
+				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			
+			((IdentifierExp)n.e2).setType(var.type);
+		}
+		
+		if( !( n.e1.getType() instanceof IntegerType) )
+			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+		
+		if( !(  n.e2.getType() instanceof IntegerType) )
+			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+		
+		
 		
 	}
 
 	public void visit(Times n) {
-		Variable variable;
-		
-		if( !( n.getExpression1().getExpType().equals(IntegerType.class)) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		
-		if( !(  n.getExpression2().getExpType().equals(IntegerType.class)) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		
-		if( n.getExpression1() instanceof IdentifierExp ) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.getExpression1()).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.getExpression1()).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.getExpression1()).s + " is not declared");
-				
-			if( !variable.type.getClass().equals(IntegerType.class) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		}
-		
-		if( n.getExpression2() instanceof IdentifierExp ) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.getExpression2()).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.getExpression2()).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.getExpression2()).s + " is not declared");
-				
-			if( !variable.type.getClass().equals(IntegerType.class) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		}
 		n.e1.accept(this);
 		n.e2.accept(this);
+		
+		Variable var;
+		
+		if( n.e1 instanceof IdentifierExp ) {
+			if( (var = getVariavel( ((IdentifierExp)n.e1).s ) ) == null )
+				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
+				
+			if( !(var.type instanceof IntegerType) )
+				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			
+			((IdentifierExp)n.e1).setType(var.type);
+		}
+		
+		if( n.e2 instanceof IdentifierExp ) {
+			if( (var = getVariavel( ((IdentifierExp)n.e2).s ) ) == null )
+				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
+				
+			if( !(var.type instanceof IntegerType) )
+				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+		
+			((IdentifierExp)n.e2).setType(var.type);
+		}
+		
+		
+		if( !( n.e1.getType() instanceof IntegerType) )
+			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+		
+		if( !(  n.e2.getType() instanceof IntegerType) )
+			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+		
+		
 		
 	}
 
 	public void visit(ArrayLookup n) {
 		n.e1.accept(this);
 		n.e2.accept(this);
+		
+		Variable var;
+		if( n.e1 instanceof IdentifierExp ) {
+			if( (var = getVariavel( ((IdentifierExp)n.e1).s ) ) == null )
+				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
+				
+			if( !(var.type instanceof IntArrayType) )
+				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			
+			((IdentifierExp)n.e1).setType(var.type);
+		}
+		
+		if( n.e2 instanceof IdentifierExp ) {
+			if( (var = getVariavel( ((IdentifierExp)n.e2).s ) ) == null )
+				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
+				
+			if( !(var.type instanceof IntegerType) )
+				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+		
+			((IdentifierExp)n.e2).setType(var.type);
+		}
+		
+		if( !( n.e1.getType() instanceof IntArrayType) )
+			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+		
+		if( !( n.e2.getType() instanceof IntegerType) )
+			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
 	}
 
 	public void visit(ArrayLength n) {
-		Variable variable;
+		n.e.accept(this);
+		
+		Variable var;
 		
 		if( !(n.e instanceof IdentifierExp) )
 			throw new IllegalArgumentException("Illegal operation for this type");
 		
-		if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.e).s )) == null )
-			if( ( variable = this.lastMethod.vars.get( ((IdentifierExp)n.e).s )) == null )
-				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
+		if( (var = getVariavel( ((IdentifierExp)n.e).s )) == null )
+			throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
 		
-		if( !variable.type.getClass().equals(IntArrayType.class))
+		if( !(var.type instanceof IntArrayType))
 			throw new IllegalArgumentException("Illegal operation for this type");
 		
-		n.e.accept(this);
 	}
 
 	public void visit(Call  n) {
-		Variable variable;
-		Classe classe;
-		Method metodo;
-		
-		if(n.e.getExpType().equals(IdentifierType.class)) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.e).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.e).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
-			
-			classe = this.table.classes.get( ((IdentifierType)variable.type).s );
-			if( (metodo = classe.methods.get(n.i.s)) == null )
-				throw new IllegalArgumentException("Method "+n.i.s+" not declared in "+classe.name);
-			
-			
-			if( metodo.params.size() != n.el.size()){
-				throw new IllegalArgumentException("Different number of arguments in "+metodo.name);
-			}
-			
-			for(int i=0; i<metodo.params.size(); i++) {
-				if( !(metodo.params.get(i).type.getClass().equals(n.el.elementAt(i).getExpType())) ) {
-					throw new IllegalArgumentException("Illegal type for method parameters  "+metodo.name);
-				}
-			}
-		}
-		
-		/*if( !(n.e.getExpType().equals(IdentifierType.class) ||
-			  n.e instanceof Call ||
-			  n.e instanceof This) )
-			throw new IllegalArgumentException("Illegal operation for this type");
-		
-		if( n.e instanceof IdentifierExp){
-			if(this.lastMethod != null)
-				variable = this.lastMethod.vars.get( ((IdentifierExp)n.e).s ); 
-			else
-				variable = this.lastClass.globals.get( ((IdentifierExp)n.e).s );
-			
-			if(variable == null)
-				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
-			
-			if( (classe = this.table.classes.get( ((IdentifierType)variable.type).s )) == null )
-				throw new IllegalArgumentException("Type " + ((IdentifierType)variable.type).s + " not declared");
-		}
-		
-		
-		if( (method = classe.methods.get(n.i.s)) == null ) 
-			throw new IllegalArgumentException("Method "+ n.i.s + " not declared");
-		
-		if( !(method.params.size() == n.el.size()) ) {
-			System.out.println(method.params.size());
-			throw new IllegalArgumentException("Number of params invalid");
-		}
-		
-		for(int i = 0; i < method.params.size(); i++) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.el.elementAt(i)).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.el.elementAt(i)).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.el.elementAt(i)).s + " is not declared");
-			
-			if( !(method.params.get(i).type.getClass().equals( variable.type.getClass() )) )
-				throw new IllegalArgumentException("Illegal arguments passed");
-		}*/
-		
 		n.e.accept(this);
 	    n.i.accept(this);
 	    for ( int i = 0; i < n.el.size(); i++ ) {
 	        n.el.elementAt(i).accept(this);
 	    }
+	    
+	    String classeName;
+	    Classe classe;
+	    Method metodo;
+	    Variable var;
+	    Type returnType;
+	    
+	    if(n.e instanceof IdentifierExp) {
+	    	if(( var = getVariavel(((IdentifierExp)n.e).s )) == null)
+				throw new IllegalArgumentException("Variável não declarada");
+	    	
+	    	returnType = var.type;
+	    } else {
+	    	returnType = n.e.getType();
+	    }
+	    
+	    if(!(returnType instanceof IdentifierType)) {
+	    	throw new IllegalArgumentException("Este tipo não permite chamada a métodos. Call");
+	    }
+	    
+	    classeName = ((IdentifierType)returnType).s;
+	    if((classe = this.table.classes.get(classeName)) == null)
+	    	throw new IllegalArgumentException("Tipo não declarado. Call");
+	    
+	    if((metodo = classe.methods.get(n.i.s)) == null) {
+	    	if(classe.parent != null) {
+	    		metodo = this.table.classes.get(classe.parent).methods.get(n.i.s);
+	    	}
+	    	if(metodo == null)
+	    		throw new IllegalArgumentException("Método não declarado. Call");
+	    }
+		
+		if( metodo.params.size() != n.el.size()){
+			throw new IllegalArgumentException("Different number of arguments in "+metodo.name);
+		}
+		
+		for(int i=0; i<metodo.params.size(); i++) {
+			if(n.el.elementAt(i) instanceof IdentifierExp){
+				if(( var = getVariavel(((IdentifierExp)n.el.elementAt(i)).s )) == null)
+					throw new IllegalArgumentException("Variável não declarada");
+				
+				((IdentifierExp)n.el.elementAt(i)).setType(var.type);
+			}
+			
+			if( !isTypeEqual(metodo.params.get(i).type, n.el.elementAt(i).getType()) ) {
+				throw new IllegalArgumentException("Illegal type for method parameters  "+metodo.name);
+			}
+		}
+		
+		n.setType(metodo.type);
 	}
 
 	public void visit(IntegerLiteral n) {
@@ -495,80 +551,103 @@ public class TypeCheckVisitor implements Visitor{
 
 	public void visit(IdentifierExp n) {
 		// TODO Auto-generated method stub
-		
+		//System.out.println("IdentifierExp " + n.s);
+		/*Variable var;
+		if((var = getVariavel(n.s)) == null)
+			throw new IllegalArgumentException("Variável não declarada encontrado em IdentifierExp");
+		n.setType(var.type);*/
 	}
 
 	public void visit(This n) {
 		// TODO Auto-generated method stub
-		
+		if(this.lastClass == null)
+			throw new IllegalArgumentException("Chamada de this fora de classe");
+		n.setType(this.lastClass.type);
 	}
 
 	public void visit(NewArray n) {
 		n.e.accept(this);
+		
 	}
 
 	public void visit(NewObject n) {
 		// TODO Auto-generated method stub
+		Classe classe;
+		if( (classe = this.table.classes.get(n.i.s)) == null )
+			throw new IllegalArgumentException("Classe não declarada");
+		
+		n.setType(classe.type);
 		
 	}
 
 	public void visit(Not n) {
-		Variable variable;
+		n.e.accept(this);
 		
-		if( !( n.e.getExpType().equals(BooleanType.class)) )
-			throw new IllegalArgumentException("Illegal operation with non boolean type");
+		Variable var;
 		
 		if( n.e instanceof IdentifierExp ) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.e).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.e).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
+			if( (var = getVariavel( ((IdentifierExp)n.e).s ) ) == null )
+				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
 				
-			if( !variable.type.getClass().equals(BooleanType.class) )
+			if( !(var.type instanceof BooleanType) )
 				throw new IllegalArgumentException("Illegal operation with non boolean type");
+			
+			((IdentifierExp)n.e).setType(var.type);
 		}
-		n.e.accept(this);
+		
+		if( !( n.e.getType() instanceof BooleanType) )
+			throw new IllegalArgumentException("Illegal operation with non boolean type");
+		
+		
+		
 	}
 
 	public void visit(Identifier n) {
 		// TODO Auto-generated method stub
-		
-	}
-	
-	public void binaryIntegerOperationCheck(BinaryIntegerOperation n) {
-		Variable variable;
-		
-		if( !(  n.getExpression1() instanceof BinaryIntegerOperation ||
-				n.getExpression1() instanceof IntegerLiteral ||
-				n.getExpression1() instanceof IdentifierExp ||
-				n.getExpression1() instanceof ArrayLength) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		
-		if( n.getExpression1() instanceof IdentifierExp ) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.getExpression1()).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.getExpression1()).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.getExpression1()).s + " is not declared");
-				
-			if( !variable.type.getClass().equals(IntegerType.class) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		}
-		
-		if( !(  n.getExpression2() instanceof BinaryIntegerOperation ||
-				n.getExpression2() instanceof IntegerLiteral ||
-				n.getExpression2() instanceof IdentifierExp ||
-				n.getExpression2() instanceof ArrayLength) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		
-		if( n.getExpression2() instanceof IdentifierExp ) {
-			if( (variable = this.lastClass.globals.get( ((IdentifierExp)n.getExpression2()).s ) ) == null )
-				if( (variable = this.lastMethod.vars.get( ((IdentifierExp)n.getExpression2()).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.getExpression2()).s + " is not declared");
-				
-			if( !variable.type.getClass().equals(IntegerType.class) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
-		}
 	}
 	
 	private boolean isTypeEqual(Type t1, Type t2){
-		return t1.getClass() == t2.getClass();
+		Classe classe1, classe2;
+		
+		if( t1.getClass().equals(t2.getClass()) ){
+			if(t1 instanceof IdentifierType ) {
+				classe1 = this.table.classes.get(((IdentifierType)t1).s);
+				classe2 = this.table.classes.get(((IdentifierType)t2).s);
+				if( classe1.name.equals(classe2.name) || classe1.name.equals(classe2.parent))
+					return true;
+			}else 
+				return true;
+		}
+		
+		return false;
 	}
+	
+	private Variable getVariavel(String varName) {
+		Variable id = null;
+		
+		// Verifica se a variável da atribuicao foi declarada no escopo local
+		if(this.lastMethod != null) { 
+			id = this.lastMethod.vars.get(varName);
+			if(id == null) {
+				id = this.lastMethod.getParam(varName);
+			}
+		}
+		
+		// Verifica se a variável da atribuicao foi declarada no escopo global
+		if(id == null) {
+			id = this.lastClass.globals.get(varName);
+			// Verifica se a variável foi herdada da classe parent
+			if(id == null && this.lastClass.parent != null) {
+				id = this.table.classes.get(this.lastClass.parent).globals.get(varName);
+			}
+		}
+		
+		return id;
+	}
+
+	final static String VARIAVEL_NAO_DECLARADA = "Variável não declarada: ";
+	final static String VARIAVEL_JA_DECLARADA = "Variável já existe: ";
+	final static String TIPO_ERRADO = "Tipo errado para essa expressão: ";
 }
+
+ 

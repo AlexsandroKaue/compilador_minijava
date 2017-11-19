@@ -1,7 +1,7 @@
 package AST;
 import AST.Visitor.Visitor;
 
-public class LessThan extends Exp implements BinaryIntegerOperation{
+public class LessThan extends Exp {
   public Exp e1,e2;
   
   public LessThan(Exp ae1, Exp ae2, int ln) {
@@ -12,18 +12,8 @@ public class LessThan extends Exp implements BinaryIntegerOperation{
   public void accept(Visitor v) {
     v.visit(this);
   }
-
-	public Exp getExpression1() {
-		// TODO Auto-generated method stub
-		return e1;
-	}
-
-	public Exp getExpression2() {
-		// TODO Auto-generated method stub
-		return e2;
-	}
 	
-	public Class<? extends Type> getExpType(){
-		return BooleanType.class;
+	public Type getType(){
+		return new BooleanType(0);
 	}
 }
