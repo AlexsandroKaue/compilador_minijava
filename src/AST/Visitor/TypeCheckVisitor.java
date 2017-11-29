@@ -76,7 +76,7 @@ public class TypeCheckVisitor implements Visitor{
 		  			throw new SemanticsException("Classe não declarada: "+ ((IdentifierType)n.t).s, n.line_number);
 			
 			if(!this.lastMethod.addVar(n.i.s, n.t))
-				throw new SemanticsException(VARIAVEL_JA_DECLARADA + n.i.s, n.line_number);
+				throw new SemanticsException("Variável já declarada: " + n.i.s, n.line_number);
 		}
 	}
 
@@ -98,13 +98,13 @@ public class TypeCheckVisitor implements Visitor{
 		
 		if( n.e instanceof IdentifierExp) {
 			if((var = getVariavel( ((IdentifierExp)n.e).s )) == null)
-				throw new SemanticsException(VARIAVEL_NAO_DECLARADA +((IdentifierExp)n.e).s, n.line_number);
+				throw new SemanticsException("Variável não declarada: " +((IdentifierExp)n.e).s, n.line_number);
 			
 			((IdentifierExp)n.e).setType(var.type);
 		}
 		
 		if(!isTypeEqual(this.lastMethod.type, n.e.getType()))
-			throw new SemanticsException(TIPO_ERRADO, n.line_number);
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.line_number);
 		
 		this.lastMethod = null;
 		
@@ -151,17 +151,17 @@ public class TypeCheckVisitor implements Visitor{
 		
 		if( n.e instanceof IdentifierExp) {
 			if((identifier = getVariavel( ((IdentifierExp)n.e).s )) == null)
-				throw new SemanticsException(VARIAVEL_NAO_DECLARADA +((IdentifierExp)n.e).s, n.line_number);
-				//throw new IllegalArgumentException("Variável " + ((IdentifierExp)n.e).s + " não foi declarada");
+				throw new SemanticsException("Variável não declarada: " +((IdentifierExp)n.e).s, n.line_number);
+				//throw new SemanticsException("Variável " + ((IdentifierExp)n.e).s + " não foi declarada");
 			
 			if( !(identifier.type instanceof BooleanType) )
-				throw new SemanticsException(TIPO_ERRADO + n.getClass().getName() , n.line_number);
+				throw new SemanticsException("Tipo ilegal para essa expressão. Esperado: " + n.getClass().getName(), n.line_number);
 			
 			((IdentifierExp)n.e).setType(identifier.type);
 		}
 		
 		if( !(n.e.getType() instanceof BooleanType) ) 
-			throw new SemanticsException(TIPO_ERRADO + n.toString() , n.line_number);
+			throw new SemanticsException("Tipo ilegal para essa expressão. Esperado: " + n.toString(), n.line_number);
 		
 	}
 
@@ -173,16 +173,16 @@ public class TypeCheckVisitor implements Visitor{
 		
 		if( n.e instanceof IdentifierExp) {
 			if((identifier = getVariavel( ((IdentifierExp)n.e).s )) == null)
-				throw new SemanticsException(VARIAVEL_NAO_DECLARADA+ ((IdentifierExp)n.e).s, n.line_number);
+				throw new SemanticsException("Variável não declarada: "+ ((IdentifierExp)n.e).s, n.line_number);
 			
 			if( !(identifier.type instanceof BooleanType) )
-				throw new SemanticsException(TIPO_ERRADO + n.toString() , n.line_number);
+				throw new SemanticsException("Tipo ilegal para essa expressão. Esperado: "+ n.toString() , n.line_number);
 			
 			((IdentifierExp)n.e).setType(identifier.type);
 		}
 		
 		if( !(n.e.getType() instanceof BooleanType) )
-			throw new SemanticsException(TIPO_ERRADO, n.line_number);
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.line_number);
 	}
 
 	public void visit(Print n) {
@@ -196,16 +196,16 @@ public class TypeCheckVisitor implements Visitor{
 		Variable var;
 		
 		if(getVariavel(n.i.s) == null)
-			throw new IllegalArgumentException("Variable " + n.i.s + " is not declared");
+			throw new SemanticsException("Variável não declarada: "+ n.i.s, n.i.line_number);
 		
 		if(n.e instanceof IdentifierExp) {
 			if( (var = getVariavel(((IdentifierExp)n.e).s)) == null )
-				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
+				throw new SemanticsException("Variável não declarada: "+ ((IdentifierExp)n.e).s, n.e.line_number);
 			((IdentifierExp)n.e).setType(var.type);
 		}
 		
 		if(!isTypeEqual(getVariavel(n.i.s).type, n.e.getType()))
-			throw new IllegalArgumentException("Atribução não permitida para esse tipo");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e.line_number);
 		
 	}
 
@@ -218,36 +218,36 @@ public class TypeCheckVisitor implements Visitor{
 		Variable var;
 		
 		if((identifier = getVariavel(n.i.s)) == null)
-			throw new IllegalArgumentException("Variable " + n.i.s + " is not declared");
+			throw new SemanticsException("Variável não declarada: " + n.i.s, n.i.line_number);
 		
 		if(!(identifier.type instanceof IntArrayType))
-			throw new IllegalArgumentException("Variable " + n.i.s + " is not an array type");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.i.line_number);
 		
 		if( n.e1 instanceof IdentifierExp ) {
 			if((var = getVariavel( ((IdentifierExp)n.e1).s )) == null)
-				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
+				throw new SemanticsException("Variável não declarada: " + ((IdentifierExp)n.e1).s, n.e1.line_number);
 			
 			if(!(var.type instanceof IntegerType))
-				throw new IllegalArgumentException("Illegal type assign");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ",n.e1.line_number);
 			
 			((IdentifierExp)n.e1).setType(var.type);
 		}
 		
 		if( !(n.e1.getType() instanceof IntegerType) )
-			throw new IllegalArgumentException("Illegal type assign");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ",n.e1.line_number);
 		
 		if( n.e2 instanceof IdentifierExp ) {
 			if((var = getVariavel( ((IdentifierExp)n.e2).s )) == null)
-				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
+				throw new SemanticsException("Variável não declarada: " + ((IdentifierExp)n.e2).s, n.e2.line_number);
 			
 			if( !(var.type instanceof IntegerType) )
-				throw new IllegalArgumentException("Illegal type assign");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e2.line_number);
 			
 			((IdentifierExp)n.e2).setType(var.type);
 		} 
 		
 		if( !(n.e2.getType() instanceof IntegerType) )
-			throw new IllegalArgumentException("Illegal type assign");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e2.line_number);
 		
 	}
 
@@ -260,29 +260,29 @@ public class TypeCheckVisitor implements Visitor{
 		if( n.e1 instanceof IdentifierExp ) {
 			
 			if( (var = getVariavel( ((IdentifierExp)n.e1).s )) == null)
-				throw new IllegalArgumentException("Variável " + ((IdentifierExp)n.e1).s + " não foi declarada");
+				throw new SemanticsException("Variável não declarada" + ((IdentifierExp)n.e1).s, n.e1.line_number);
 				
 			if( !(var.type instanceof BooleanType) )
-				throw new IllegalArgumentException("Illegal operation between non boolean and boolean types");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e1.line_number);
 			
 			((IdentifierExp)n.e1).setType(var.type);
 		}
 		
 		if( n.e2 instanceof IdentifierExp ) {
 			if( (var = getVariavel( ((IdentifierExp)n.e2).s ) ) == null )
-				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
+				throw new SemanticsException("Variável não declarada: " + ((IdentifierExp)n.e2).s, n.e2.line_number);
 				
 			if( !(var.type instanceof BooleanType) )
-				throw new IllegalArgumentException("Illegal operation between non boolean and boolean types");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e2.line_number);
 			
 			((IdentifierExp)n.e2).setType(var.type);
 		}
 		
 		if( !( n.e1.getType() instanceof BooleanType) )
-			throw new IllegalArgumentException("Illegal operation between non boolean and boolean types");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e1.line_number);
 		
 		if( !(  n.e2.getType() instanceof BooleanType) )
-			throw new IllegalArgumentException("Illegal operation between non boolean and boolean types");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e2.line_number);
 		
 	}
 
@@ -294,29 +294,29 @@ public class TypeCheckVisitor implements Visitor{
 		
 		if( n.e1 instanceof IdentifierExp ) {
 			if( (var = getVariavel( ((IdentifierExp)n.e1).s ) ) == null )
-				throw new IllegalArgumentException("Variável " + ((IdentifierExp)n.e1).s + " não foi declarada");
+				throw new SemanticsException("Variável não declarada: " + ((IdentifierExp)n.e1).s, n.e1.line_number);
 				
 			if( !(var.type instanceof IntegerType) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e1.line_number);
 			
 			((IdentifierExp)n.e1).setType(var.type);
 		}
 		
 		if( n.e2 instanceof IdentifierExp ) {
 			if( (var = getVariavel( ((IdentifierExp)n.e2).s ) ) == null )
-				throw new IllegalArgumentException("Variável " + ((IdentifierExp)n.e2).s + " não foi declarada");
+				throw new SemanticsException("Variável não declarada: " + ((IdentifierExp)n.e2).s, n.e2.line_number);
 				
 			if( !(var.type instanceof IntegerType) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e2.line_number);
 			
 			((IdentifierExp)n.e2).setType(var.type);
 		}
 		
 		if( !( n.e1.getType() instanceof IntegerType) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e1.line_number);
 		
 		if( !(  n.e2.getType() instanceof IntegerType) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e2.line_number);
 		
 	}
 	
@@ -328,30 +328,29 @@ public class TypeCheckVisitor implements Visitor{
 		
 		if( n.e1 instanceof IdentifierExp ) {
 			if( (var = getVariavel( ((IdentifierExp)n.e1).s ) ) == null )
-				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
+				throw new SemanticsException("Variable não declarada: " + ((IdentifierExp)n.e1).s, n.e1.line_number);
 				
 			if( !(var.type instanceof IntegerType) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e1.line_number);
 			
 			((IdentifierExp)n.e1).setType(var.type);
 		}
 		
 		if( n.e2 instanceof IdentifierExp ) {
-			if( (var = this.lastClass.globals.get( ((IdentifierExp)n.e2).s ) ) == null )
-				if( (var = this.lastMethod.vars.get( ((IdentifierExp)n.e2).s ) ) == null )
-					throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
+			if( (var = getVariavel( ((IdentifierExp)n.e2).s ) ) == null )
+				throw new SemanticsException("Variável não declarada: " + ((IdentifierExp)n.e2).s, n.e2.line_number);
 				
 			if( !(var.type instanceof IntegerType) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e2.line_number);
 			
 			((IdentifierExp)n.e2).setType(var.type);
 		}
 		
 		if( !( n.e1.getType() instanceof IntegerType) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e1.line_number);
 		
 		if( !(  n.e2.getType() instanceof IntegerType) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e2.line_number);
 		
 	}
 
@@ -363,29 +362,29 @@ public class TypeCheckVisitor implements Visitor{
 		
 		if( n.e1 instanceof IdentifierExp ) {
 			if( (var = getVariavel( ((IdentifierExp)n.e1).s ) ) == null )
-				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
+				throw new SemanticsException("Variável não declarada: " + ((IdentifierExp)n.e1).s, n.e1.line_number);
 				
 			if( !(var.type instanceof IntegerType) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e1.line_number);
 			
 			((IdentifierExp)n.e1).setType(var.type);
 		}
 		
 		if( n.e2 instanceof IdentifierExp ) {
 			if( (var = getVariavel( ((IdentifierExp)n.e2).s ) ) == null )
-				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
+				throw new SemanticsException("Variável não declarada: " + ((IdentifierExp)n.e2).s, n.e2.line_number);
 				
 			if( !(var.type instanceof IntegerType) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e2.line_number);
 			
 			((IdentifierExp)n.e2).setType(var.type);
 		}
 		
 		if( !( n.e1.getType() instanceof IntegerType) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e1.line_number);
 		
 		if( !(  n.e2.getType() instanceof IntegerType) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e2.line_number);
 		
 		
 		
@@ -399,30 +398,30 @@ public class TypeCheckVisitor implements Visitor{
 		
 		if( n.e1 instanceof IdentifierExp ) {
 			if( (var = getVariavel( ((IdentifierExp)n.e1).s ) ) == null )
-				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
+				throw new SemanticsException("Variável não declarada: " + ((IdentifierExp)n.e1).s, n.e1.line_number);
 				
 			if( !(var.type instanceof IntegerType) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e1.line_number);
 			
 			((IdentifierExp)n.e1).setType(var.type);
 		}
 		
 		if( n.e2 instanceof IdentifierExp ) {
 			if( (var = getVariavel( ((IdentifierExp)n.e2).s ) ) == null )
-				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
+				throw new SemanticsException("Variável não declarada: " + ((IdentifierExp)n.e2).s, n.e2.line_number);
 				
 			if( !(var.type instanceof IntegerType) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e2.line_number);
 		
 			((IdentifierExp)n.e2).setType(var.type);
 		}
 		
 		
 		if( !( n.e1.getType() instanceof IntegerType) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e1.line_number);
 		
 		if( !(  n.e2.getType() instanceof IntegerType) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e2.line_number);
 		
 		
 		
@@ -435,29 +434,29 @@ public class TypeCheckVisitor implements Visitor{
 		Variable var;
 		if( n.e1 instanceof IdentifierExp ) {
 			if( (var = getVariavel( ((IdentifierExp)n.e1).s ) ) == null )
-				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e1).s + " is not declared");
+				throw new SemanticsException("Variável não declarada: " + ((IdentifierExp)n.e1).s, n.e1.line_number);
 				
 			if( !(var.type instanceof IntArrayType) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e1.line_number);
 			
 			((IdentifierExp)n.e1).setType(var.type);
 		}
 		
 		if( n.e2 instanceof IdentifierExp ) {
 			if( (var = getVariavel( ((IdentifierExp)n.e2).s ) ) == null )
-				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e2).s + " is not declared");
+				throw new SemanticsException("Variável não declarada: " + ((IdentifierExp)n.e2).s, n.e2.line_number);
 				
 			if( !(var.type instanceof IntegerType) )
-				throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e2.line_number);
 		
 			((IdentifierExp)n.e2).setType(var.type);
 		}
 		
 		if( !( n.e1.getType() instanceof IntArrayType) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e1.line_number);
 		
 		if( !( n.e2.getType() instanceof IntegerType) )
-			throw new IllegalArgumentException("Illegal operation between noninteger and integer types");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e2.line_number);
 	}
 
 	public void visit(ArrayLength n) {
@@ -466,13 +465,13 @@ public class TypeCheckVisitor implements Visitor{
 		Variable var;
 		
 		if( !(n.e instanceof IdentifierExp) )
-			throw new IllegalArgumentException("Illegal operation for this type");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e.line_number);
 		
 		if( (var = getVariavel( ((IdentifierExp)n.e).s )) == null )
-			throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
+			throw new SemanticsException("Variaável não declarada: " + ((IdentifierExp)n.e).s, n.e.line_number);
 		
 		if( !(var.type instanceof IntArrayType))
-			throw new IllegalArgumentException("Illegal operation for this type");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e.line_number);
 		
 	}
 
@@ -491,7 +490,7 @@ public class TypeCheckVisitor implements Visitor{
 	    
 	    if(n.e instanceof IdentifierExp) {
 	    	if(( var = getVariavel(((IdentifierExp)n.e).s )) == null)
-				throw new IllegalArgumentException("Variável não declarada");
+				throw new SemanticsException("Variável não declarada: "+ ((IdentifierExp)n.e).s, n.e.line_number);
 	    	
 	    	returnType = var.type;
 	    } else {
@@ -499,35 +498,35 @@ public class TypeCheckVisitor implements Visitor{
 	    }
 	    
 	    if(!(returnType instanceof IdentifierType)) {
-	    	throw new IllegalArgumentException("Este tipo não permite chamada a métodos. Call");
+	    	throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e.line_number);
 	    }
 	    
 	    classeName = ((IdentifierType)returnType).s;
 	    if((classe = this.table.classes.get(classeName)) == null)
-	    	throw new IllegalArgumentException("Tipo não declarado. Call");
+	    	throw new SemanticsException("Classe não declarada: "+classeName, n.e.line_number);
 	    
 	    if((metodo = classe.methods.get(n.i.s)) == null) {
 	    	if(classe.parent != null) {
 	    		metodo = this.table.classes.get(classe.parent).methods.get(n.i.s);
 	    	}
 	    	if(metodo == null)
-	    		throw new IllegalArgumentException("Método não declarado. Call");
+	    		throw new SemanticsException("Método não declarado: "+n.i.s, n.i.line_number);
 	    }
 		
 		if( metodo.params.size() != n.el.size()){
-			throw new IllegalArgumentException("Different number of arguments in "+metodo.name);
+			throw new SemanticsException("Diferente número de argumentos: "+metodo.name, n.el.line_number);
 		}
 		
 		for(int i=0; i<metodo.params.size(); i++) {
 			if(n.el.elementAt(i) instanceof IdentifierExp){
 				if(( var = getVariavel(((IdentifierExp)n.el.elementAt(i)).s )) == null)
-					throw new IllegalArgumentException("Variável não declarada");
+					throw new SemanticsException("Variável não declarada: "+((IdentifierExp)n.el.elementAt(i)).s, n.el.elementAt(i).line_number);
 				
 				((IdentifierExp)n.el.elementAt(i)).setType(var.type);
 			}
 			
 			if( !isTypeEqual(metodo.params.get(i).type, n.el.elementAt(i).getType()) ) {
-				throw new IllegalArgumentException("Illegal type for method parameters  "+metodo.name);
+				throw new SemanticsException("Tipo ilegal para os parâmetros do método: "+metodo.name, n.el.elementAt(i).line_number);
 			}
 		}
 		
@@ -551,17 +550,12 @@ public class TypeCheckVisitor implements Visitor{
 
 	public void visit(IdentifierExp n) {
 		// TODO Auto-generated method stub
-		//System.out.println("IdentifierExp " + n.s);
-		/*Variable var;
-		if((var = getVariavel(n.s)) == null)
-			throw new IllegalArgumentException("Variável não declarada encontrado em IdentifierExp");
-		n.setType(var.type);*/
 	}
 
 	public void visit(This n) {
 		// TODO Auto-generated method stub
 		if(this.lastClass == null)
-			throw new IllegalArgumentException("Chamada de this fora de classe");
+			throw new SemanticsException("Chamada de this fora de classe");
 		n.setType(this.lastClass.type);
 	}
 
@@ -574,7 +568,7 @@ public class TypeCheckVisitor implements Visitor{
 		// TODO Auto-generated method stub
 		Classe classe;
 		if( (classe = this.table.classes.get(n.i.s)) == null )
-			throw new IllegalArgumentException("Classe não declarada");
+			throw new SemanticsException("Classe não declarada: "+n.i.s, n.i.line_number);
 		
 		n.setType(classe.type);
 		
@@ -587,16 +581,16 @@ public class TypeCheckVisitor implements Visitor{
 		
 		if( n.e instanceof IdentifierExp ) {
 			if( (var = getVariavel( ((IdentifierExp)n.e).s ) ) == null )
-				throw new IllegalArgumentException("Variable " + ((IdentifierExp)n.e).s + " is not declared");
+				throw new SemanticsException("Variável não declarada: " + ((IdentifierExp)n.e).s, n.e.line_number);
 				
 			if( !(var.type instanceof BooleanType) )
-				throw new IllegalArgumentException("Illegal operation with non boolean type");
+				throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e.line_number);
 			
 			((IdentifierExp)n.e).setType(var.type);
 		}
 		
 		if( !( n.e.getType() instanceof BooleanType) )
-			throw new IllegalArgumentException("Illegal operation with non boolean type");
+			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e.line_number);
 		
 		
 		
@@ -625,7 +619,7 @@ public class TypeCheckVisitor implements Visitor{
 	private Variable getVariavel(String varName) {
 		Variable id = null;
 		
-		// Verifica se a variável da atribuicao foi declarada no escopo local
+		// Verifica se a variável foi declarada no escopo local
 		if(this.lastMethod != null) { 
 			id = this.lastMethod.vars.get(varName);
 			if(id == null) {
@@ -633,7 +627,7 @@ public class TypeCheckVisitor implements Visitor{
 			}
 		}
 		
-		// Verifica se a variável da atribuicao foi declarada no escopo global
+		// Verifica se a variável foi declarada no escopo global
 		if(id == null) {
 			id = this.lastClass.globals.get(varName);
 			// Verifica se a variável foi herdada da classe parent

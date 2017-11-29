@@ -2,6 +2,7 @@ package AST.Visitor;
 
 import AST.*;
 import Semantics.ClassSymbolTable;
+import Throwables.SemanticsException;
 /*
  * Etapa responsavel por construir a tabela de simbolos que guarda 
  * as classes decladaras na entrada
@@ -36,7 +37,7 @@ public class BuildGlobalSymbolTable implements Visitor{
 	  // Statement s;
 	  public void visit(MainClass n) {
 		  if (!this.classSymbolTable.addClass(n.getClassName(), null))
-				throw new IllegalArgumentException("Class " + n.getClassName() + " already exists");
+			  throw new SemanticsException("Classe já declarada: "+ n.getClassName(), n.i1.line_number);
 		  n.i1.accept(this);
 		  n.i2.accept(this);
 		  n.s.accept(this);
@@ -47,7 +48,7 @@ public class BuildGlobalSymbolTable implements Visitor{
 	  // MethodDeclList ml;
 	  public void visit(ClassDeclSimple n) {
 			if (!this.classSymbolTable.addClass(n.getClassName(), null))
-				throw new IllegalArgumentException("Class " + n.getClassName() + " already exists");
+				throw new SemanticsException("Classe já declarada: "+ n.i.s, n.i.line_number);
 			
 			n.i.accept(this);
 			for ( int i = 0; i < n.vl.size(); i++ ) {
@@ -64,7 +65,7 @@ public class BuildGlobalSymbolTable implements Visitor{
 	  // MethodDeclList ml;
 	  public void visit(ClassDeclExtends n) {
 		if (!this.classSymbolTable.addClass(n.getClassName(), n.getParentClassName()))
-			throw new IllegalArgumentException("Class " + n.getClassName() + " already exists");
+			throw new SemanticsException("Classe já declarada: "+n.i.s, n.i.line_number);
 		
 	    n.i.accept(this);
 	    n.j.accept(this);

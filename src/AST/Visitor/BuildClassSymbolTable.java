@@ -5,6 +5,7 @@ import Semantics.Classe;
 import Semantics.Method;
 import Semantics.ClassSymbolTable;
 import Semantics.Variable;
+import Throwables.SemanticsException;
 
 public class BuildClassSymbolTable implements Visitor{
 	private ClassSymbolTable tableClass;
@@ -85,10 +86,10 @@ public class BuildClassSymbolTable implements Visitor{
 		  if(this.lastMethod == null) {
 			  	if(n.t instanceof IdentifierType)
 			  		if( tableClass.classes.get( ((IdentifierType)n.t).s) == null )
-			  			throw new IllegalArgumentException("Classe não declarada "+ ((IdentifierType)n.t).s);
+			  			throw new SemanticsException("Classe não declarada: "+ ((IdentifierType)n.t).s, n.t.line_number);
 			  	
 				if(!this.lastClass.addVar(n.i.s, n.t))
-					throw new IllegalArgumentException("Variable " + n.i.s + " already exists");
+					throw new SemanticsException("Variável já existe: "+ ((IdentifierType)n.t).s, n.t.line_number);
 		  }	
 		  
 	  }
@@ -101,7 +102,7 @@ public class BuildClassSymbolTable implements Visitor{
 	  // Exp e;
 	  public void visit(MethodDecl n) {
 		  	if(!this.lastClass.addMethod(n.getMethodName(), n.getMethodType()))
-				throw new IllegalArgumentException("Method " + n.i.s + " already exists");
+		  		throw new SemanticsException("Método já existe: "+n.i.s, n.i.line_number);
 			this.lastMethod = this.lastClass.methods.get(n.getMethodName());
 			
 			for(int i = 0; i < n.fl.size(); i++) {
