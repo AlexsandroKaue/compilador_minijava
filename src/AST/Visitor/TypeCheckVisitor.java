@@ -196,16 +196,16 @@ public class TypeCheckVisitor implements Visitor{
 		Variable var;
 		
 		if(getVariavel(n.i.s) == null)
-			throw new SemanticsException("Variável não declarada: "+ n.i.s, n.i.line_number);
+			throw new SemanticsException("Variável não declarada: "+ n.i.s, n.line_number);
 		
 		if(n.e instanceof IdentifierExp) {
 			if( (var = getVariavel(((IdentifierExp)n.e).s)) == null )
-				throw new SemanticsException("Variável não declarada: "+ ((IdentifierExp)n.e).s, n.e.line_number);
+				throw new SemanticsException("Variável não declarada: "+ ((IdentifierExp)n.e).s, n.line_number);
 			((IdentifierExp)n.e).setType(var.type);
 		}
 		
 		if(!isTypeEqual(getVariavel(n.i.s).type, n.e.getType()))
-			throw new SemanticsException("Tipo ilegal para essa expressão: ", n.e.line_number);
+			throw new SemanticsException("Tipo ilegal para a atribuição.", n.line_number);
 		
 	}
 

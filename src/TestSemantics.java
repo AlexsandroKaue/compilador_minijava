@@ -39,11 +39,6 @@ public class TestSemantics {
             // other kind of error that we've already handled in the
             // appropriate way (not a bug that the error got here)
             System.err.println(e.getMessage());
-        } catch (IllegalArgumentException e) {
-            // an error in the user's arguments or input, or some
-            // other kind of error that we've already handled in the
-            // appropriate way (not a bug that the error got here)
-            System.err.println(e.getMessage());
         } catch(SemanticsException e) {
         	System.err.println(e.getMessage());
         } catch (Exception e) {

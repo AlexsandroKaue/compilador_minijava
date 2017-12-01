@@ -134,7 +134,7 @@ FormalList ::=  		NoEmptyFormalList:forl
 
 						
 NoEmptyFormalList ::= 	Formal:f
-							{: FormalList forl = new FormalList(1); forl.addElement(f); RESULT = forl; :} 
+							{: FormalList forl = new FormalList(fleft); forl.addElement(f); RESULT = forl; :} 
  
 						| NoEmptyFormalList:forl COMMA Formal:f
 							{: forl.addElement(f); RESULT = forl; :};
@@ -168,13 +168,13 @@ StatementList ::= 		Statement:stmt StatementList:stml
 
 		
 Statement   ::= 		Identifier:id BECOMES Exp:expr SEMICOLON
-		                    {: RESULT = new Assign(id, expr, idleft); :}
+		                    {: RESULT = new Assign(id, expr, exprleft); :}
 
 			            | ReturnStatement:s
 			                {: RESULT = s; :}
 
 			            | Identifier:id LBRACK Exp:expr1 RBRACK BECOMES Exp:expr2 SEMICOLON
-			            	{: RESULT = new ArrayAssign(id, expr1, expr2, idleft); :}
+			            	{: RESULT = new ArrayAssign(id, expr1, expr2, expr1left); :}
 
 			            | SYSOUT LPAREN Exp:expr RPAREN SEMICOLON
 			            	{: RESULT = new Print(expr, exprleft); :}
@@ -191,52 +191,52 @@ Statement   ::= 		Identifier:id BECOMES Exp:expr SEMICOLON
 
 				
 Exp    ::= 				Exp:arg1 PLUS Exp:arg2
-				            {: RESULT = new Plus(arg1, arg2, 1); :}
+				            {: RESULT = new Plus(arg1, arg2, arg1left); :}
 				            
 				        | Exp:arg1 TIMES Exp:arg2
-				            {: RESULT = new Times(arg1, arg2, 1); :}
+				            {: RESULT = new Times(arg1, arg2, arg1left); :}
 				            
 				        | Exp:arg1 MINUS Exp:arg2
-				            {: RESULT = new Minus(arg1, arg2, 1); :}
+				            {: RESULT = new Minus(arg1, arg2, arg1left); :}
 				            
 				        | Exp:arg1 LESS Exp:arg2
-				        	{: RESULT = new LessThan(arg1, arg2, 1); :}
+				        	{: RESULT = new LessThan(arg1, arg2, arg1left); :}
 				        	
 				       	| Exp:arg1 AND Exp:arg2
-				        	{: RESULT = new And(arg1, arg2, 1); :}
+				        	{: RESULT = new And(arg1, arg2, arg1left); :}
 				        	
 				        | Exp:expr1 LBRACK Exp:expr2 RBRACK
-				        	{: RESULT = new ArrayLookup(expr1, expr2, 1); :}
+				        	{: RESULT = new ArrayLookup(expr1, expr2, expr1left); :}
 				        	
 				        | Exp:arg1 POINT LENGTH
-				        	{: RESULT = new ArrayLength(arg1, 1); :}
+				        	{: RESULT = new ArrayLength(arg1, arg1left); :}
 				        	
 				        | Exp:expr POINT Identifier:id LPAREN ExpList:el RPAREN
-							{: RESULT = new Call(expr, id, el, 1); :}
+							{: RESULT = new Call(expr, id, el, exprleft); :}
 								
 				       	| INT:lit
-				            {: RESULT = new IntegerLiteral(lit, 1); :}
+				            {: RESULT = new IntegerLiteral(lit, litleft); :}
 				            
 				        | TRUE:tru
-				            {: RESULT = new True(1); :}
+				            {: RESULT = new True(truleft); :}
 				            
 				       	| FALSE:fal
-				            {: RESULT = new False(1); :}
+				            {: RESULT = new False(falleft); :}
 				            
 				        | Identifier:id 
-				        	{: RESULT = new IdentifierExp(id.s,1); :}
+				        	{: RESULT = new IdentifierExp(id.s,idleft); :}
 				            
 				        | THIS:th
-				        	{: RESULT = new This(1); :}
+				        	{: RESULT = new This(thleft); :}
 				        	
 				        | NEW INTEGER LBRACK Exp:expr RBRACK
-				        	{: RESULT = new NewArray(expr, 1); :}
+				        	{: RESULT = new NewArray(expr, exprleft); :}
 				        	
 				        | NEW Identifier:id LPAREN RPAREN 
-				        	{: RESULT = new NewObject(id, 1); :}
+				        	{: RESULT = new NewObject(id, idleft); :}
 				        	
 				        | NOT Exp:expr
-				            {: RESULT = new Not(expr, 1); :}
+				            {: RESULT = new Not(expr, exprleft); :}
 				            
 				        | LPAREN Exp:expr RPAREN
 				            {: RESULT = expr; :};
@@ -244,7 +244,7 @@ Exp    ::= 				Exp:arg1 PLUS Exp:arg2
         
             
 Identifier  ::=  		IDENTIFIER:id
-	                		{: RESULT = new Identifier(id, 1); :};
+	                		{: RESULT = new Identifier(id, idleft); :};
 
 
        
