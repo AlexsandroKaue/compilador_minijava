@@ -64,7 +64,7 @@ precedence left NEW;
 /* Productions */
             
 Goal ::= 				MainClass:main ClassDeclList:cldl
-							{: RESULT = new Program(main, cldl, cldlleft); :};
+							{: RESULT = new Program(main, cldl, mainleft); :};
 
 
 			
@@ -77,7 +77,7 @@ ClassDeclList ::= 		ClassDeclList:cldl ClassDecl:clad
 					  		{: cldl.addElement(clad); RESULT = cldl; :}
 
 					  	| /*empty*/	
-							{: RESULT = new ClassDeclList(1); :};
+							{: RESULT = new ClassDeclList(0); :};
 
 
 
@@ -103,7 +103,7 @@ VarDeclList ::= 		VarDeclList:vadl VarDecl:vard
 							{: vadl.addElement(vard); RESULT = vadl; :}
 
 						| /*empty*/
-							{: RESULT = new VarDeclList(1); :}; 
+							{: RESULT = new VarDeclList(0); :}; 
 
 
 					            
@@ -116,7 +116,7 @@ MethodDeclList ::= 		MethodDeclList:mthdl MethodDecl:mthd
 							{: mthdl.addElement(mthd); RESULT = mthdl; :}
 
 						| /*empty*/
-							{: RESULT = new MethodDeclList(1); :};
+							{: RESULT = new MethodDeclList(0); :};
 
 
 					
@@ -129,7 +129,7 @@ FormalList ::=  		NoEmptyFormalList:forl
 							{: 	RESULT = forl; :}
 
 					    | /*empty*/	
-							{: RESULT = new FormalList(1); :};
+							{: RESULT = new FormalList(0); :};
 
 
 						
@@ -147,13 +147,13 @@ Formal ::= 				Type:t Identifier:id
 
 						
 Type ::=  				INTEGER LBRACK RBRACK 
-							{: RESULT = new IntArrayType(1); :}
+							{: RESULT = new IntArrayType(0); :}
 
 						| BOOLEAN
-							{: RESULT = new BooleanType(1); :}
+							{: RESULT = new BooleanType(0); :}
 
 						| INTEGER
-							{: RESULT = new IntegerType(1); :}
+							{: RESULT = new IntegerType(0); :}
 
 						| Identifier:id
 							{: RESULT = new IdentifierType(id.s,idleft); :};
@@ -163,7 +163,7 @@ Type ::=  				INTEGER LBRACK RBRACK
 StatementList ::= 		Statement:stmt StatementList:stml
 							{: stml.addElement(stmt); RESULT = stml; :}
 						| /*empty*/
-							{: RESULT = new StatementList(1); :};
+							{: RESULT = new StatementList(0); :};
 
 
 		
@@ -253,7 +253,7 @@ ExpList ::=  			NoEmptyList:exprl
 							{: 	RESULT = exprl; :}
 
 						| /*empty*/
-							{: RESULT = new ExpList(1); :};
+							{: RESULT = new ExpList(0); :};
 
 
 						
